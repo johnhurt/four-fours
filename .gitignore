@@ -1,0 +1,15 @@
+**/target
+**/.DS_Store
+**/Cargo.lock
+**/.vscode
+
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
+
+**/project.xcworkspace
+**/xcuserdata
+**/fourfours.h
+RustBinder.swift
+four_fours_build.log
+lib_gen.rs

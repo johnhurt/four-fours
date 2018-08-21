@@ -1,0 +1,34 @@
+[package]
+name = "four-fours-core"
+version = "0.1.0"
+authors = ["Kevin Guthrie <kevin.guthrie@gmail.com>"]
+build = "build/build.rs"
+
+[dependencies]
+parallel-event-emitter = "0.2.4"
+futures = "0.1.8"
+rayon = "1.0.1"
+crossbeam-channel = "0.2.2"
+trace-error = "0.1.3"
+lazy_static = "1.0"
+log = "0.4"
+simplelog = "0.5.2"
+
+[build-dependencies]
+cbindgen = "0.6.0"
+regex = "1.0.2"
+lazy_static = "1.0"
+handlebars = "1.0.0"
+serde = "1.0.21"
+serde_json = "1.0.21"
+heck = "0.3.0"
+derive_builder = "0.5.1"
+itertools = "0.7.8"
+log = "0.4"
+simplelog = "0.5.2"
+
+[lib]
+name = "fourfours"
+path = "src/lib.rs"
+crate-type = ["staticlib"]
+
