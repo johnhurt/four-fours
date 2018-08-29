@@ -9,13 +9,14 @@
 import Foundation
 import SpriteKit
 
-class MainMenuView : BaseView<WrappedMainMenuPresenter> {
+class MainMenuView : BaseView {
   
   let startNewGameButton : Button
   
+  
   override init() {
     
-    let startNewGameButton = Button(size: CGSize(width: 400, height: 200))
+    let startNewGameButton = Button()
     startNewGameButton.setFillColor(fillColor: SKColor.cyan)
     
     self.startNewGameButton = startNewGameButton
@@ -23,7 +24,6 @@ class MainMenuView : BaseView<WrappedMainMenuPresenter> {
     super.init()
     
     addChild(startNewGameButton)
-    
   }
   
   required init?(coder aDecoder: NSCoder) {
@@ -31,19 +31,16 @@ class MainMenuView : BaseView<WrappedMainMenuPresenter> {
   }
   
   func transitionToGameView() {
-//    
-//    let transitioner = self.transitioner
-//    
-//    let gameView = GameView(
-//      transitioner: transitioner)
-//    
-//    let gameViewPointer = UnsafeMutableRawPointer(Unmanaged.passRetained(gameView).toOpaque())
-//    
-//    let gamePresenter = bind_game_view(applicationContext, gameViewPointer)
-//    
-//    transitioner.transition(view: gameView, viewCleanup: {
-//      (applicationContext.internal_ui_binding.game_presenter.drop)(gamePresenter)
-//    })
+    let gameView = GameView()
+    gameView.setPresenter(presenter: getContext().bindToGameView(view: gameView))
+    transitionTo(newView: gameView)
+  }
+  
+  override func layout(size: CGSize) {
+    startNewGameButton.setSize(size: CGSize(
+        width: size.width / 5,
+        height: size.width / 5 / 1.618))
+    startNewGameButton.position = CGPoint(x: size.width / 2.0, y: -size.height / 2.0)
   }
   
   deinit {

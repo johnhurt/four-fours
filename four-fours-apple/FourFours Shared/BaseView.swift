@@ -9,11 +9,13 @@
 import Foundation
 import SpriteKit
 
-class BaseView<P>: SKNode {
+class BaseView: SKNode {
   
-  private var presenter : P?
+  private var presenter : AnyObject?
   private var ctx : ApplicationContext?
   private var transitionService : TransitionService?
+  
+  private var size: CGSize?
   
   override init() {
     super.init()
@@ -27,7 +29,7 @@ class BaseView<P>: SKNode {
     return ctx!
   }
   
-  func transitionTo<T>(newView: BaseView<T>) {
+  func transitionTo(newView: BaseView) {
     newView.initializeCtx(ctx: self.ctx!, transitionService: self.transitionService!)
     transitionService?.transition(view: newView)
     self.presenter = nil
@@ -39,11 +41,19 @@ class BaseView<P>: SKNode {
     self.transitionService = transitionService
   }
   
-  func setPresenter(presenter: P) {
+  func setPresenter(presenter: AnyObject) {
     self.presenter = presenter
   }
   
   func unsetPresenter() {
     self.presenter = nil
   }
+  
+  final func setSize(size: CGSize) {
+    self.size = size
+    layout(size: size)
+  }
+  
+  func layout(size: CGSize) {}
+  
 }

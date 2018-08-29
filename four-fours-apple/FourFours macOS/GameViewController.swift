@@ -12,20 +12,29 @@ import GameplayKit
 
 class GameViewController: NSViewController {
 
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        
-        let scene = GameScene.newGameScene()
-        
-        // Present the scene
-        let skView = self.view as! SKView
-        skView.presentScene(scene)
-        
-        skView.ignoresSiblingOrder = true
-        
-        skView.showsFPS = true
-        skView.showsNodeCount = true
-    }
+  var skView : SKView?
+  var scene : GameScene?
 
+  override func viewDidLoad() {
+    super.viewDidLoad()
+  
+    // Present the scene
+    self.skView = self.view as? SKView
+  
+    self.scene = GameScene.newGameScene(size: (skView?.bounds.size)!)
+    self.skView!.presentScene(self.scene)
+  
+    self.skView!.ignoresSiblingOrder = true
+  
+    self.skView!.showsFPS = true
+    self.skView!.showsNodeCount = true
+  }
+  
+  override func viewDidLayout() {
+    super.viewDidLayout()
+    
+    self.scene?.setSize(size: self.skView!.bounds.size)
+  }
+  
 }
 

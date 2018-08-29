@@ -16,38 +16,16 @@ class ProgressBar : SKNode {
   let bar = SKShapeNode()
   let labelNode = SKLabelNode()
   
-  let barOrigin : CGPoint
-  let maxBarWidth : CGFloat
-  let barHeight : CGFloat
+  var barOrigin : CGPoint = CGPoint(x: 0, y: 0)
+  var maxBarWidth : CGFloat = 0.0
+  var barHeight : CGFloat = 0.0
   var progress : Int64 = 0
   
-  init(size: CGSize) {
-    background.path = CGPath(
-      rect: CGRect(origin: CGPoint(x: -size.width / 2, y: -size.height / 2), size: size),
-      transform: nil)
-    
-    let interiorSize = CGSize(
-        width: 0.95 * size.width,
-        height: size.height - 0.05 * size.width)
-    
+  override init() {
+   
     background.fillColor = SKColor.clear
     background.strokeColor = SKColor.clear
     
-    let barBackroundSize = CGSize(
-      width: interiorSize.width,
-      height: interiorSize.height / 3)
-    
-    self.barHeight = barBackroundSize.height / 3
-    self.maxBarWidth = interiorSize.width - (self.barHeight * 2)
-    self.barOrigin = CGPoint(
-        x: -self.maxBarWidth / 2,
-        y: -(interiorSize.height * 3.5 / 9))
-    
-    self.barBackground.path = CGPath(
-        rect: CGRect(
-            origin: CGPoint(x: -interiorSize.width / 2, y: -interiorSize.height * 1.5 / 3),
-            size: barBackroundSize),
-        transform: nil)
     
     self.barBackground.fillColor = SKColor.lightGray
     self.barBackground.strokeColor = SKColor.clear
@@ -57,16 +35,12 @@ class ProgressBar : SKNode {
     
     super.init()
     
-    self.setIntValue(0)
-    
     self.isUserInteractionEnabled = true
     
     addChild(self.background)
     addChild(self.barBackground)
     addChild(self.bar)
     
-    labelNode.position = CGPoint(x: 0, y: interiorSize.height * 1 / 6)
-    labelNode.fontSize = interiorSize.height / 4
     labelNode.fontColor = SKColor.lightGray
     labelNode.horizontalAlignmentMode = SKLabelHorizontalAlignmentMode.center
     labelNode.verticalAlignmentMode = SKLabelVerticalAlignmentMode.center
@@ -78,6 +52,38 @@ class ProgressBar : SKNode {
   
   required init?(coder aDecoder: NSCoder) {
     fatalError("init(coder:) has not been implemented")
+  }
+  
+  func setSize(size: CGSize) {
+    background.path = CGPath(
+      rect: CGRect(origin: CGPoint(x: -size.width / 2, y: -size.height / 2), size: size),
+      transform: nil)
+    
+    let interiorSize = CGSize(
+      width: 0.95 * size.width,
+      height: size.height - 0.05 * size.width)
+    
+    let barBackroundSize = CGSize(
+      width: interiorSize.width,
+      height: interiorSize.height / 3)
+    
+    self.barHeight = barBackroundSize.height / 3
+    self.maxBarWidth = interiorSize.width - (self.barHeight * 2)
+    self.barOrigin = CGPoint(
+      x: -self.maxBarWidth / 2,
+      y: -(interiorSize.height * 3.5 / 9))
+    
+    self.barBackground.path = CGPath(
+      rect: CGRect(
+        origin: CGPoint(x: -interiorSize.width / 2, y: -interiorSize.height * 1.5 / 3),
+        size: barBackroundSize),
+      transform: nil)
+    
+    labelNode.position = CGPoint(x: 0, y: interiorSize.height * 1 / 6)
+    labelNode.fontSize = interiorSize.height / 4
+    
+    self.setIntValue(progress)
+    
   }
   
   func setIntValue(_ value: Int64) {

@@ -1,3 +1,4 @@
+use std::{time, thread};
 use native::{Texture, TextureLoader};
 
 macro_rules! count {
@@ -41,6 +42,7 @@ macro_rules! define_texture_atlas {
         progress_callback(counter / sub_tex_count);
 
         $(
+          thread::sleep(time::Duration::from_millis(50));
           let $name = texture_atlas.get_sub_texture(
                 ($left) * tile_width,
                 ($top) * tile_height,
@@ -50,7 +52,7 @@ macro_rules! define_texture_atlas {
           progress_callback(counter / sub_tex_count);
         )*
 
-        $texture_type{
+        $texture_type {
           $(
             $name: $name,
           )*
@@ -70,18 +72,29 @@ define_texture_atlas!(Card(x_tile_count: 1, y_tile_count: 1) {
 });
 
 define_texture_atlas!(Symbols (x_tile_count: 6, y_tile_count: 6) {
-  zero_point(left: 0, top: 0, width: 1, height: 1)
+  zero_point(left: 0, top: 0, width: 1, height: 1),
+  one(left: 1, top: 0, width: 1, height: 1),
+  two(left: 2, top: 0, width: 1, height: 1),
+  three(left: 3, top: 0, width: 1, height: 1),
+  four(left: 4, top: 0, width: 1, height: 1),
+  five(left: 5, top: 0, width: 1, height: 1),
+  six(left: 0, top: 1, width: 1, height: 1),
+  seven(left: 1, top: 1, width: 1, height: 1),
+  eight(left: 2, top: 1, width: 1, height: 1),
+  nine(left: 3, top: 1, width: 1, height: 1),
+  plus(left: 4, top: 1, width: 1, height: 1),
+  minus(left: 5, top: 1, width: 1, height: 1)
 });
 
-pub struct Textures<TL: TextureLoader> {
-  card: TL::T,
-  symbols: Symbols<TL::T>
+pub struct Textures<T: Texture> {
+  card: T,
+  symbols: Symbols<T>
 }
 
-impl <TL: TextureLoader> Textures<TL> {
+impl <T: Texture> Textures<T> {
 
-  pub fn new(texture_loader: &TL, progress_callback: &Fn(f64))
-      -> Textures<TL> {
+  pub fn new(texture_loader: &TextureLoader<T = T>, progress_callback: &Fn(f64))
+      -> Textures<T> {
 
     let card_atlas = Card::new(texture_loader.load_texture(
         String::from("Card.png")), |p| progress_callback(p / 2.));
@@ -92,6 +105,14 @@ impl <TL: TextureLoader> Textures<TL> {
       card: card_atlas.card,
       symbols: symbols_atlas
     }
+  }
+
+  pub fn card(&self) -> &T {
+    &self.card
+  }
+
+  pub fn symbols(&self) -> &Symbols<T> {
+    &self.symbols
   }
 
 }

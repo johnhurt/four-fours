@@ -1,4 +1,9 @@
-use gen::{ DataType, RustStructDataType, SwiftStructDataType };
+use gen::{
+  DataType,
+  RustStructDataType,
+  SwiftStructDataType,
+  SwiftGenericizedDataType
+};
 
 #[derive(Serialize,Builder,Clone, Default)]
 #[builder(public)]
@@ -6,10 +11,12 @@ use gen::{ DataType, RustStructDataType, SwiftStructDataType };
 #[builder(pattern = "owned")]
 pub struct RenderableDataType {
   pub name: String,
+  pub sanitized_name: String,
 
   pub rust_name_internal: String,
   pub rust_name_incoming: String,
   pub rust_name_outgoing: String,
+  pub borrow_outgoing: bool,
 
   pub rust_type_coersion_prefix_incoming: String,
   pub rust_type_coersion_postfix_incoming: String,
@@ -29,13 +36,14 @@ pub struct RenderableDataType {
 
 impl RenderableDataType {
   pub fn from_raw(data_type: &DataType) -> RenderableDataType {
-    let mut builder = RenderableDataTypeBuilder::default();
+    let builder = RenderableDataTypeBuilder::default();
 
     match data_type {
       DataType::Nil => panic!("Nil data_type not valid ... yet"),
       DataType::Stringy => {
         builder
             .name(String::from("String"))
+            .sanitized_name(String::from("String"))
             .rust_name_internal(String::from("String"))
             .rust_name_incoming(String::from("*mut Opaque_SwiftString"))
             .rust_name_outgoing(String::from("*mut RustString"))
@@ -80,6 +88,9 @@ impl RenderableDataType {
       },
       DataType::SwiftStruct(struct_type) => {
         render_swift_struct_type(struct_type, builder)
+      },
+      DataType::SwiftGenericized(generic_type) => {
+        render_swift_genericized_type(generic_type, builder)
       }
     }.build().unwrap()
   }
@@ -89,6 +100,7 @@ impl RenderableDataType {
 fn render_rust_struct_type(struct_type: &RustStructDataType
     , builder: RenderableDataTypeBuilder) -> RenderableDataTypeBuilder {
   builder
+      .sanitized_name(String::from(struct_type.name))
       .rust_name_internal(String::from(struct_type.name))
       .rust_name_incoming(String::from("*mut ")
           + &String::from(struct_type.name))
@@ -113,6 +125,8 @@ fn render_rust_struct_type(struct_type: &RustStructDataType
 fn render_swift_struct_type(struct_type: &SwiftStructDataType
     , builder: RenderableDataTypeBuilder) -> RenderableDataTypeBuilder {
   builder
+      .borrow_outgoing(true)
+      .sanitized_name(String::from(struct_type.name))
       .rust_name_internal(String::from(struct_type.name))
       .rust_name_incoming(format!("*mut Opaque_{}", struct_type.name))
       .rust_name_outgoing(format!("*mut Opaque_{}", struct_type.name))
@@ -127,9 +141,20 @@ fn render_swift_struct_type(struct_type: &SwiftStructDataType
       .swift_name_incoming(String::from("OpaquePointer?"))
       .swift_name_outgoing(String::from("OpaquePointer?"))
       .swift_type_coersion_prefix_incoming(
-          String::from("Unmanaged.fromOpaque("))
-      .swift_type_coersion_postfix_incoming(String::from("!)"))
+          String::from("Unmanaged.fromOpaque(UnsafeRawPointer("))
+      .swift_type_coersion_postfix_incoming(String::from("!)).takeRetainedValue()"))
       .swift_type_coersion_prefix_outgoing(
           String::from("OpaquePointer(Unmanaged.passRetained("))
       .swift_type_coersion_postfix_outgoing(String::from(").toOpaque())"))
+}
+
+fn render_swift_genericized_type(generic_type: &SwiftGenericizedDataType,
+    builder: RenderableDataTypeBuilder) -> RenderableDataTypeBuilder {
+  render_swift_struct_type(&generic_type.bound_type, builder)
+      .sanitized_name(String::from(generic_type.sanitized_name))
+      .rust_name_internal(format!("{}", generic_type.full_type))
+      .rust_name_incoming(format!("*mut Opaque_{}",
+          generic_type.sanitized_name))
+      .rust_name_outgoing(format!("*mut Opaque_{}",
+          generic_type.sanitized_name))
 }

@@ -69,6 +69,6 @@ impl <V: MainMenuView> MainMenuPresenter<V> {
 
 impl <V: MainMenuView> Drop for MainMenuPresenter<V> {
   fn drop(&mut self) {
-    println!("Dropping Main Menu Presenter")
+    info!("Dropping Main Menu Presenter")
   }
 }

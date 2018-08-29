@@ -123,7 +123,7 @@ impl {{#if trait_name}}{{trait_name}} for {{/if}}{{../name}} {
   {{~#each functions}}
   {{#unless ../trait_name}}pub {{/unless}}fn {{#if impl_name}}{{impl_name}}{{else}}{{name}}{{/if}}(
       &{{#if require_mutable_self}}mut{{/if}} self
-      {{#each arguments}}, {{snake_case name}}: {{data_type.rust_name_internal}}
+      {{#each arguments}}, {{snake_case name}}: {{#if data_type.borrow_outgoing}}&{{/if}}{{data_type.rust_name_internal}}
       {{~/each}})
           {{#if return_type}}-> {{return_type.rust_name_internal}}{{/if}} {
     {{#if custom_rust_code}}{{custom_rust_code}}{{/if}}

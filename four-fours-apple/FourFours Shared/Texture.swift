@@ -12,9 +12,14 @@ import SpriteKit
 class Texture {
 
   let texture : SKTexture
-
+  let size : CGSize
+  
   init(texture: SKTexture) {
     self.texture = texture
+    self.size = texture.size()
+    texture.preload {
+      print("Texture loaded size: \(self.texture.size())")
+    }
   }
 
   convenience init(resourceName: String) {
@@ -22,17 +27,26 @@ class Texture {
   }
 
   func getSubTexture(_ left: Int64, _ top: Int64, _ width: Int64, _ height: Int64) -> Texture {
-    let size = CGSize(width: Int(width), height: Int(height))
-    let rect = CGRect(origin: CGPoint(x: Int(top), y: Int(left)), size: size)
-    return Texture(texture: SKTexture(rect: rect, in: self.texture))
+    
+    let tWidth = CGFloat(width) / self.size.width
+    let tHeight = CGFloat(height) / self.size.height
+    
+    let tLeft = CGFloat(left) / self.size.width
+    let tBottom = ( self.size.height - CGFloat(top) - CGFloat(height) ) / self.size.height
+    
+    let rect = CGRect(
+        origin: CGPoint(x: tLeft, y: tBottom),
+        size: CGSize(width: tWidth, height: tHeight))
+    let result = Texture(texture: SKTexture(rect: rect, in: self.texture))
+    return result
   }
 
   func getWidth() -> Int64 {
-    return Int64(texture.size().width)
+    return Int64(self.size.width)
   }
   
   func getHeight() -> Int64 {
-    return Int64(texture.size().width)
+    return Int64(self.size.height)
   }
   
   deinit {

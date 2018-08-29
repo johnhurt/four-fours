@@ -1,5 +1,4 @@
 use std::sync::{Arc, Mutex};
-use std::{ thread, time };
 use event::{
     EventBus,
     LoadResources,
@@ -9,18 +8,15 @@ use event::{
 };
 
 use native::{
-  Texture,
   Textures,
   RuntimeResources,
-  SystemView,
-  TextureLoader
+  SystemView
 };
 
 use ui::{
   LoadingView,
   HasText,
-  HasIntValue,
-  HandlerRegistration,
+  HasIntValue
 };
 
 pub struct LoadingPresenter<V,S>
@@ -30,7 +26,6 @@ pub struct LoadingPresenter<V,S>
   system_view: Arc<S>,
   resources_sink: Box<Fn(RuntimeResources<S>)>,
   event_bus: Arc<EventBus>,
-  handler_registrations: Mutex<Vec<Box<HandlerRegistration>>>,
   listener_registrations: Mutex<Vec<ListenerRegistration>>,
 }
 
@@ -64,12 +59,6 @@ impl <V,S> LoadingPresenter<V,S>
     }
   }
 
-  fn add_handler_registration(&self, hr: Box<HandlerRegistration>) {
-    if let Ok(mut locked_list) = self.handler_registrations.lock() {
-      locked_list.push(hr);
-    }
-  }
-
   fn bind(self) -> Arc<LoadingPresenter<V,S>> {
 
     let result = Arc::new(self);
@@ -95,7 +84,6 @@ impl <V,S> LoadingPresenter<V,S>
       system_view: system_view,
       event_bus: event_bus,
       resources_sink: resources_sink,
-      handler_registrations: Mutex::new(Vec::new()),
       listener_registrations: Mutex::new(Vec::new())
     }.bind()
   }

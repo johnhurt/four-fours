@@ -1,5 +1,12 @@
-use ui::{HasSize, HasLocation};
+use native::{
+  SystemView
+};
+use ui::{
+  HasLayoutHandlers,
+  Sprite,
+  SpriteSource
+};
 
-pub trait GameView : 'static + HasSize + HasLocation {
+pub trait GameView : SpriteSource + HasLayoutHandlers + 'static {
 
 }

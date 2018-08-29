@@ -8,17 +8,19 @@ use simplelog::{ SimpleLogger, LevelFilter, Config, CombinedLogger };
 use ::{
     WrappedLoadingPresenter,
     WrappedMainMenuPresenter,
+    WrappedGamePresenter,
     LoadingView,
     MainMenuView,
-    SystemView,
-    TextureLoader
+    GameView,
+    SystemView
 };
 
 use native::{RuntimeResources};
 
 use presenter::{
     LoadingPresenter,
-    MainMenuPresenter
+    MainMenuPresenter,
+    GamePresenter
 };
 
 lazy_static!{
@@ -80,6 +82,15 @@ impl ApplicationContext {
       -> WrappedMainMenuPresenter {
     WrappedMainMenuPresenter::new(
         MainMenuPresenter::new(view, self.event_bus.clone()))
+  }
+
+  pub fn bind_to_game_view(&self, view: GameView)
+      -> WrappedGamePresenter {
+    WrappedGamePresenter::new(
+        GamePresenter::new(
+            view,
+            self.event_bus.clone(),
+            self.get_runtime_resources()))
   }
 }
 

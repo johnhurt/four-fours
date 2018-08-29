@@ -9,12 +9,12 @@
 import Foundation
 import SpriteKit
 
-class LoadingView : BaseView<WrappedLoadingPresenter> {
+class LoadingView : BaseView {
   let progressIndicator : ProgressBar
   
   override init() {
    
-    self.progressIndicator = ProgressBar(size: CGSize(width: 400, height: 200))
+    self.progressIndicator = ProgressBar()
     super.init()
     addChild(progressIndicator)
   }
@@ -23,9 +23,20 @@ class LoadingView : BaseView<WrappedLoadingPresenter> {
     fatalError("init(coder:) has not been implemented")
   }
   
+  override func layout(size: CGSize) {
+    progressIndicator.setSize(size: CGSize(
+      width: size.width / 5,
+      height: size.width / 5 / 1.618))
+    progressIndicator.position = CGPoint(x: size.width / 2.0, y: -size.height / 2.0)
+  }
+  
   func transitionToMainMenuView() {
     let mainMenu = MainMenuView()
     transitionTo(newView: mainMenu)
     mainMenu.setPresenter(presenter: getContext().bindToMainMenuView(view: mainMenu))
+  }
+  
+  deinit {
+    print("Dropping Loading view")
   }
 }

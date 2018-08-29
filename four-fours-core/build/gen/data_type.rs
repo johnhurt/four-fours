@@ -9,6 +9,14 @@ lazy_static! {
           .build().unwrap()
       );
 
+  pub static ref DOUBLE : DataType = DataType::Primitive(
+      PrimitiveDataTypeBuilder::default()
+          .name("Double")
+          .rust_name("f64")
+          .swift_name("Float64")
+          .build().unwrap()
+      );
+
   pub static ref MUTABLE_BYTE_POINTER : DataType = DataType::Primitive(
       PrimitiveDataTypeBuilder::default()
           .name("MutableBytePointer")
@@ -28,7 +36,8 @@ pub enum DataType {
   RustGeneric(RustGenericDataType),
   RustStruct(RustStructDataType),
   SwiftGeneric(SwiftGenericDataType),
-  SwiftStruct(SwiftStructDataType)
+  SwiftStruct(SwiftStructDataType),
+  SwiftGenericized(SwiftGenericizedDataType)
 }
 
 #[derive(Serialize,Builder,Default,Clone,Copy)]
@@ -71,6 +80,16 @@ pub struct SwiftGenericDataType {
 #[builder(default)]
 #[builder(public)]
 #[builder(pattern = "owned")]
+pub struct SwiftGenericizedDataType {
+  pub full_type: &'static str,
+  pub sanitized_name: &'static str,
+  pub bound_type: SwiftStructDataType
+}
+
+#[derive(Serialize,Builder,Default,Clone,Copy)]
+#[builder(default)]
+#[builder(public)]
+#[builder(pattern = "owned")]
 pub struct SwiftStructDataType {
   pub name: &'static str,
   pub import: Option<&'static str>
@@ -103,7 +122,14 @@ impl DataType {
         struct_type.import.iter()
             .map(|import| { import.to_string() })
             .collect()
-      }
+      },
+      DataType::SwiftGenericized(generic_type) => {
+        generic_type.bound_type.import
+            .clone()
+            .into_iter()
+            .map(String::from)
+            .collect()
+      },
     }
   }
 
@@ -131,6 +157,20 @@ impl DataType {
     if let DataType::SwiftStruct(swift_type) = bound_type {
       DataType::SwiftGeneric(SwiftGenericDataTypeBuilder::default()
           .symbol(symbol)
+          .bound_type(swift_type)
+          .build().unwrap())
+    }
+    else { panic!("Can only create a swift generic out of a swift struct") }
+  }
+
+  pub fn swift_genericized(
+      full_type: &'static str,
+      sanitized_name: &'static str,
+      bound_type: DataType) -> DataType {
+    if let DataType::SwiftStruct(swift_type) = bound_type {
+      DataType::SwiftGenericized(SwiftGenericizedDataTypeBuilder::default()
+          .full_type(full_type)
+          .sanitized_name(sanitized_name)
           .bound_type(swift_type)
           .build().unwrap())
     }

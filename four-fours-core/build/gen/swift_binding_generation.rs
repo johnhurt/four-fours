@@ -35,6 +35,15 @@ lazy_static!{
             "presenter::LoadingPresenter"
         ])
         .build().unwrap(),
+
+    WrappedTypeDefBuilder::default()
+        .wrapper_name("WrappedGamePresenter")
+        .wrapped_type_name("Arc<GamePresenter<GameView,SystemView>>")
+        .wrapped_type_imports(vec![
+            "std::sync::Arc",
+            "presenter::GamePresenter"
+        ])
+        .build().unwrap(),
   ];
 
   #[derive(Serialize)]
@@ -110,6 +119,19 @@ lazy_static!{
                   "WrappedMainMenuPresenter", None)))
               .build().unwrap(),
 
+          MethodDefBuilder::default()
+              .name("bind_to_game_view")
+              .arguments(vec![
+                ArgumentDefBuilder::default()
+                    .name("view")
+                    .data_type(DataType::swift_struct(
+                        "GameView", None))
+                    .build().unwrap()
+              ])
+              .return_type(Some(DataType::rust_struct(
+                  "WrappedGamePresenter", None)))
+              .build().unwrap(),
+
         ])
         .build().unwrap(),
 
@@ -142,6 +164,27 @@ lazy_static!{
         .methods(vec![
             MethodDefBuilder::default()
                 .name("on_click")
+                .build().unwrap()
+        ])
+        .build().unwrap(),
+
+    TypeDefBuilder::default()
+        .name("LayoutHandler")
+        .rust_import(Some("ui::LayoutHandler"))
+        .rust_owned(true)
+        .methods(vec![
+            MethodDefBuilder::default()
+                .name("on_layout")
+                .arguments(vec![
+                  ArgumentDefBuilder::default()
+                      .name("width")
+                      .data_type(LONG.clone())
+                      .build().unwrap(),
+                  ArgumentDefBuilder::default()
+                      .name("height")
+                      .data_type(LONG.clone())
+                      .build().unwrap()
+                ])
                 .build().unwrap()
         ])
         .build().unwrap(),
@@ -351,6 +394,97 @@ lazy_static!{
         ])
         .build().unwrap(),
 
+    TypeDefBuilder::default()
+        .name("Sprite")
+        .rust_owned(false)
+        .impls(vec![
+            ImplDefBuilder::default()
+                .trait_name("ui::Sprite")
+                .trait_import(Some("ui"))
+                .generics(vec![
+                  GenericDefBuilder::default()
+                      .symbol(Some("T"))
+                      .bound_type("Texture")
+                      .build().unwrap()
+                ])
+                .build().unwrap(),
+
+            ImplDefBuilder::default()
+                .trait_name("HasMutableSize")
+                .trait_import(Some("ui::HasMutableSize"))
+                .build().unwrap(),
+
+            ImplDefBuilder::default()
+                .trait_name("HasMutableLocation")
+                .trait_import(Some("ui::HasMutableLocation"))
+                .build().unwrap()
+        ])
+        .methods(vec![
+          MethodDefBuilder::default()
+              .name("set_texture")
+              .arguments(vec![
+                ArgumentDefBuilder::default()
+                    .name("texture")
+                    .data_type(DataType::swift_generic(Some("T"),
+                        DataType::swift_struct("Texture", None)))
+                    .build().unwrap()
+              ])
+              .impl_block(Some(ImplBlockDefBuilder::default()
+                  .trait_name("ui::Sprite")
+                  .build().unwrap()))
+              .build().unwrap(),
+
+          MethodDefBuilder::default()
+              .name("set_size_animated")
+              .arguments(vec![
+
+                ArgumentDefBuilder::default()
+                    .name("width")
+                    .data_type(LONG.clone())
+                    .build().unwrap(),
+
+                ArgumentDefBuilder::default()
+                    .name("height")
+                    .data_type(LONG.clone())
+                    .build().unwrap(),
+
+                ArgumentDefBuilder::default()
+                    .name("duration_seconds")
+                    .data_type(DOUBLE.clone())
+                    .build().unwrap()
+              ])
+              .impl_block(Some(ImplBlockDefBuilder::default()
+                  .trait_name("HasMutableSize")
+                  .build().unwrap()))
+              .build().unwrap(),
+
+          MethodDefBuilder::default()
+              .name("set_location_animated")
+              .arguments(vec![
+
+                ArgumentDefBuilder::default()
+                    .name("left")
+                    .data_type(LONG.clone())
+                    .build().unwrap(),
+
+                ArgumentDefBuilder::default()
+                    .name("top")
+                    .data_type(LONG.clone())
+                    .build().unwrap(),
+
+                ArgumentDefBuilder::default()
+                    .name("duration_seconds")
+                    .data_type(DOUBLE.clone())
+                    .build().unwrap()
+              ])
+              .impl_block(Some(ImplBlockDefBuilder::default()
+                  .trait_name("HasMutableLocation")
+                  .build().unwrap()))
+              .build().unwrap(),
+
+        ])
+        .build().unwrap(),
+
     // Views
 
     TypeDefBuilder::default()
@@ -423,6 +557,77 @@ lazy_static!{
         ])
         .build().unwrap(),
 
+    TypeDefBuilder::default()
+        .name("GameView")
+        .rust_owned(false)
+        .impls(vec![
+            ImplDefBuilder::default()
+                .trait_name("ui::GameView")
+                .build().unwrap(),
+            ImplDefBuilder::default()
+                .trait_name("ui::SpriteSource")
+                .trait_import(Some("ui"))
+                .generics(vec![
+                    GenericDefBuilder::default()
+                        .symbol(Some("T"))
+                        .bound_type("Texture")
+                        .build().unwrap(),
+                    GenericDefBuilder::default()
+                        .symbol(Some("S"))
+                        .bound_type("Sprite")
+                        .build().unwrap()
+                ])
+                .build().unwrap(),
+            ImplDefBuilder::default()
+                .trait_name("HasLayoutHandlers")
+                .trait_import(Some("ui::HasLayoutHandlers"))
+                .generics(vec![
+                    GenericDefBuilder::default()
+                        .symbol(Some("R"))
+                        .bound_type("HandlerRegistration")
+                        .build().unwrap()
+                ])
+                .build().unwrap()
+        ])
+        .fields(vec![
+            // FieldDefBuilder::default()
+            //     .name("start_new_game_button")
+            //     .getter_impl(Some(ImplBlockDefBuilder::default()
+            //         .trait_name("ui::MainMenuView")
+            //         .build().unwrap()))
+            //     .data_type(DataType::swift_generic(Some("B"),
+            //         DataType::swift_struct("Button", None)))
+            //     .build().unwrap()
+        ])
+        .methods(vec![
+            MethodDefBuilder::default()
+                .name("add_layout_handler")
+                .impl_block(Some(ImplBlockDefBuilder::default()
+                    .trait_name("HasLayoutHandlers")
+                    .build().unwrap()))
+                .arguments(vec![
+                    ArgumentDefBuilder::default()
+                        .name("layout_handler")
+                        .data_type(DataType::rust_struct(
+                            "LayoutHandler",
+                            Some("ui::LayoutHandler")))
+                        .build().unwrap()
+                ])
+                .return_type(Some(DataType::swift_generic(Some("R"),
+                    DataType::swift_struct("HandlerRegistration", None))))
+                .build().unwrap(),
+
+            MethodDefBuilder::default()
+                .name("create_sprite")
+                .impl_block(Some(ImplBlockDefBuilder::default()
+                    .trait_name("ui::SpriteSource")
+                    .build().unwrap()))
+                .return_type(Some(DataType::swift_generic(Some("S"),
+                    DataType::swift_struct("Sprite", None))))
+                .build().unwrap()
+        ])
+        .build().unwrap(),
+
     // Native resources
 
     TypeDefBuilder::default()
@@ -433,6 +638,11 @@ lazy_static!{
                 .trait_name("native::SystemView")
                 .trait_import(Some("native"))
                 .generics(vec![
+                    GenericDefBuilder::default()
+                        .symbol(Some("T"))
+                        .bound_type("Texture")
+                        .build().unwrap(),
+
                     GenericDefBuilder::default()
                         .symbol(Some("TL"))
                         .bound_type("TextureLoader")

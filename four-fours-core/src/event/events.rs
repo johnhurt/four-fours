@@ -23,7 +23,11 @@ macro_rules! define_events {
 
 define_events!(FourFoursEvent,
     LoadResources{},
-    StartGame{ pub new: bool }
+    StartGame{ pub new: bool },
+    Layout{
+      pub width: i64,
+      pub height: i64,
+    }
 );
 
 
