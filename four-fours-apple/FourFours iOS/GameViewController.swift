@@ -14,6 +14,8 @@ class GameViewController: UIViewController {
 
   var skView : SKView?
   var scene : GameScene?
+  
+  var screenScale : CGFloat?
 
   override func viewDidLoad() {
     super.viewDidLoad()
@@ -22,7 +24,12 @@ class GameViewController: UIViewController {
     // Present the scene
     self.skView = self.view as? SKView
     
-    self.scene = GameScene.newGameScene(size: (self.skView?.bounds.size)!)
+    self.screenScale = UIScreen.main.nativeScale
+    
+    let nativeSize = (self.skView?.bounds.size)!
+    let scaledSize = scaleSize(nativeSize: nativeSize)
+    
+    self.scene = GameScene.newGameScene(size: scaledSize)
     
     self.skView?.presentScene(self.scene)
     
@@ -32,6 +39,12 @@ class GameViewController: UIViewController {
     
   }
 
+  func scaleSize(nativeSize: CGSize) -> CGSize {
+    return CGSize(
+      width: nativeSize.width,
+      height: nativeSize.height)
+  }
+  
   override var shouldAutorotate: Bool {
     return true
   }
@@ -56,6 +69,6 @@ class GameViewController: UIViewController {
   override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
     super.viewWillTransition(to: size, with: coordinator)
     
-    self.scene?.setSize(size: size)
+    self.scene?.setSize(size: scaleSize(nativeSize: size))
   }
 }

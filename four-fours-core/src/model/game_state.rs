@@ -1,6 +1,7 @@
 
 use model::{GameSetup, Card};
 
+#[derive(Default)]
 pub struct GameState {
   setup: GameSetup,
   cards_in_play: Vec<Card>

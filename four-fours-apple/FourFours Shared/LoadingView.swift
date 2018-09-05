@@ -10,6 +10,10 @@ import Foundation
 import SpriteKit
 
 class LoadingView : BaseView {
+  private static let MAX_WIDTH_FRAC : CGFloat = 0.5
+  private static let HEIGHT_FRAC : CGFloat = 0.2
+  private static let BUTTON_ASPECT_RATIO : CGFloat = 1.618
+  
   let progressIndicator : ProgressBar
   
   override init() {
@@ -24,9 +28,15 @@ class LoadingView : BaseView {
   }
   
   override func layout(size: CGSize) {
+    let maxHeight = size.height * LoadingView.HEIGHT_FRAC
+    let maxWidth = size.width * LoadingView.MAX_WIDTH_FRAC
+    
+    let width = min(maxWidth, maxHeight * LoadingView.BUTTON_ASPECT_RATIO)
+    let height = width / LoadingView.BUTTON_ASPECT_RATIO
+    
     progressIndicator.setSize(size: CGSize(
-      width: size.width / 5,
-      height: size.width / 5 / 1.618))
+      width: width,
+      height: height))
     progressIndicator.position = CGPoint(x: size.width / 2.0, y: -size.height / 2.0)
   }
   

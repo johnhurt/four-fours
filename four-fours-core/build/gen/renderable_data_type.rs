@@ -142,7 +142,7 @@ fn render_swift_struct_type(struct_type: &SwiftStructDataType
       .swift_name_outgoing(String::from("OpaquePointer?"))
       .swift_type_coersion_prefix_incoming(
           String::from("Unmanaged.fromOpaque(UnsafeRawPointer("))
-      .swift_type_coersion_postfix_incoming(String::from("!)).takeRetainedValue()"))
+      .swift_type_coersion_postfix_incoming(String::from("!)).takeUnretainedValue()"))
       .swift_type_coersion_prefix_outgoing(
           String::from("OpaquePointer(Unmanaged.passRetained("))
       .swift_type_coersion_postfix_outgoing(String::from(").toOpaque())"))

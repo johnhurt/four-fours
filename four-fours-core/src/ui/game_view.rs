@@ -1,9 +1,6 @@
-use native::{
-  SystemView
-};
+
 use ui::{
   HasLayoutHandlers,
-  Sprite,
   SpriteSource
 };
 

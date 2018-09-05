@@ -19,6 +19,7 @@ macro_rules! define_texture_atlas {
       }
   ) => {
 
+    #[allow(dead_code)]
     pub struct $texture_type<T: Texture> {
       $(
         $name: T,
@@ -60,6 +61,7 @@ macro_rules! define_texture_atlas {
       }
 
       $(
+        #[allow(dead_code)]
         pub fn $name(&self) -> &T { &self.$name }
       )*
     }
@@ -83,7 +85,15 @@ define_texture_atlas!(Symbols (x_tile_count: 6, y_tile_count: 6) {
   eight(left: 2, top: 1, width: 1, height: 1),
   nine(left: 3, top: 1, width: 1, height: 1),
   plus(left: 4, top: 1, width: 1, height: 1),
-  minus(left: 5, top: 1, width: 1, height: 1)
+  minus(left: 5, top: 1, width: 1, height: 1),
+  times(left: 0, top: 2, width: 1, height: 1),
+  divide(left: 1, top: 2, width: 1, height: 1),
+  power(left: 2, top: 2, width: 1, height: 1),
+  radical(left: 3, top: 2, width: 1, height: 1),
+  paren_l(left: 4, top: 2, width: 1, height: 1),
+  paren_r(left: 5, top: 2, width: 1, height: 1),
+  inverse(left: 0, top: 3, width: 1, height: 1),
+  factorial(left: 1, top: 3, width: 1, height: 1)
 });
 
 pub struct Textures<T: Texture> {

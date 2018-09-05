@@ -28,6 +28,10 @@
 		634589FC2126257A00D81EAD /* Card.png in Resources */ = {isa = PBXBuildFile; fileRef = 634589F82126257900D81EAD /* Card.png */; };
 		634589FE212645B400D81EAD /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634589FD212645B400D81EAD /* LoadingView.swift */; };
 		634589FF212645B400D81EAD /* LoadingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 634589FD212645B400D81EAD /* LoadingView.swift */; };
+		6346A2622138921200481721 /* RookAndPawn White.png in Resources */ = {isa = PBXBuildFile; fileRef = 6346A2612138921200481721 /* RookAndPawn White.png */; };
+		6346A2632138921200481721 /* RookAndPawn White.png in Resources */ = {isa = PBXBuildFile; fileRef = 6346A2612138921200481721 /* RookAndPawn White.png */; };
+		6346A2652139D1E900481721 /* DragHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346A2642139D1E900481721 /* DragHandler.swift */; };
+		6346A2662139D1E900481721 /* DragHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6346A2642139D1E900481721 /* DragHandler.swift */; };
 		6395650821264645006F2A71 /* ProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6395650721264645006F2A71 /* ProgressBar.swift */; };
 		6395650921264645006F2A71 /* ProgressBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6395650721264645006F2A71 /* ProgressBar.swift */; };
 		6395650B2126469C006F2A71 /* Texture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6395650A2126469C006F2A71 /* Texture.swift */; };
@@ -87,6 +91,8 @@
 		634589F72126257900D81EAD /* Symbols.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Symbols.png; path = ../../resources/textures/Symbols.png; sourceTree = "<group>"; };
 		634589F82126257900D81EAD /* Card.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Card.png; path = ../../resources/textures/Card.png; sourceTree = "<group>"; };
 		634589FD212645B400D81EAD /* LoadingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingView.swift; sourceTree = "<group>"; };
+		6346A2612138921200481721 /* RookAndPawn White.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "RookAndPawn White.png"; sourceTree = "<group>"; };
+		6346A2642139D1E900481721 /* DragHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DragHandler.swift; sourceTree = "<group>"; };
 		6395650721264645006F2A71 /* ProgressBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressBar.swift; sourceTree = "<group>"; };
 		6395650A2126469C006F2A71 /* Texture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Texture.swift; sourceTree = "<group>"; };
 		6395650D212646BD006F2A71 /* TextureLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextureLoader.swift; sourceTree = "<group>"; };
@@ -153,6 +159,7 @@
 				6341097F211CC7BE00D40139 /* Empty.sks */,
 				6341097E211CC7BE00D40139 /* Actions.sks */,
 				63410981211CC7C000D40139 /* Assets.xcassets */,
+				6346A2612138921200481721 /* RookAndPawn White.png */,
 				634589F5212624FC00D81EAD /* Resources */,
 				63410980211CC7BE00D40139 /* GameScene.swift */,
 				63F97AF9211CC9B500784701 /* RustBinder.swift */,
@@ -172,6 +179,7 @@
 				63C34FEC212CEB0400076E55 /* GameView.swift */,
 				63C34FEF212F2F4700076E55 /* LayoutHandler.swift */,
 				63C34FF2212F5CF900076E55 /* Sprite.swift */,
+				6346A2642139D1E900481721 /* DragHandler.swift */,
 			);
 			path = "FourFours Shared";
 			sourceTree = "<group>";
@@ -330,6 +338,7 @@
 				634109A2211CC7C000D40139 /* Actions.sks in Resources */,
 				634589FB2126257A00D81EAD /* Card.png in Resources */,
 				63410992211CC7C000D40139 /* LaunchScreen.storyboard in Resources */,
+				6346A2622138921200481721 /* RookAndPawn White.png in Resources */,
 				634109A8211CC7C000D40139 /* Assets.xcassets in Resources */,
 				634589F92126257A00D81EAD /* Symbols.png in Resources */,
 			);
@@ -344,6 +353,7 @@
 				63E983842129C9B90056E91C /* Indira_K.ttf in Resources */,
 				634109A9211CC7C000D40139 /* Assets.xcassets in Resources */,
 				634589FC2126257A00D81EAD /* Card.png in Resources */,
+				6346A2632138921200481721 /* RookAndPawn White.png in Resources */,
 				634109A3211CC7C000D40139 /* Actions.sks in Resources */,
 				634589FA2126257A00D81EAD /* Symbols.png in Resources */,
 			);
@@ -357,6 +367,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				63F97B0E211CCB0400784701 /* MainMenuView.swift in Sources */,
+				6346A2652139D1E900481721 /* DragHandler.swift in Sources */,
 				63F97B08211CCB0400784701 /* Button.swift in Sources */,
 				634109A6211CC7C000D40139 /* GameScene.swift in Sources */,
 				63F97B06211CCB0400784701 /* TextArea.swift in Sources */,
@@ -384,6 +395,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				63F97B0F211CCB0400784701 /* MainMenuView.swift in Sources */,
+				6346A2662139D1E900481721 /* DragHandler.swift in Sources */,
 				63F97B09211CCB0400784701 /* Button.swift in Sources */,
 				634109A7211CC7C000D40139 /* GameScene.swift in Sources */,
 				63F97B07211CCB0400784701 /* TextArea.swift in Sources */,

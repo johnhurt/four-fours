@@ -169,6 +169,88 @@ lazy_static!{
         .build().unwrap(),
 
     TypeDefBuilder::default()
+        .name("DragHandler")
+        .rust_import(Some("ui::DragHandler"))
+        .rust_owned(true)
+        .methods(vec![
+            MethodDefBuilder::default()
+                .name("on_drag_start")
+                .arguments(vec![
+                  ArgumentDefBuilder::default()
+                      .name("global_x")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("global_y")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("local_x")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("local_y")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+                ])
+                .build().unwrap(),
+
+            MethodDefBuilder::default()
+                .name("on_drag_move")
+                .arguments(vec![
+                  ArgumentDefBuilder::default()
+                      .name("global_x")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("global_y")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("local_x")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("local_y")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+                ])
+                .build().unwrap(),
+
+            MethodDefBuilder::default()
+                .name("on_drag_end")
+                .arguments(vec![
+                  ArgumentDefBuilder::default()
+                      .name("global_x")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("global_y")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("local_x")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+
+                  ArgumentDefBuilder::default()
+                      .name("local_y")
+                      .data_type(DOUBLE.clone())
+                      .build().unwrap(),
+                ])
+                .build().unwrap()
+        ])
+        .build().unwrap(),
+
+    TypeDefBuilder::default()
         .name("LayoutHandler")
         .rust_import(Some("ui::LayoutHandler"))
         .rust_owned(true)
@@ -344,8 +426,8 @@ lazy_static!{
                 .trait_import(Some("native"))
                 .build().unwrap(),
             ImplDefBuilder::default()
-                .trait_name("HasSize")
-                .trait_import(Some("ui::HasSize"))
+                .trait_name("HasIntSize")
+                .trait_import(Some("native::HasIntSize"))
                 .build().unwrap()
         ])
         .methods(vec![
@@ -353,7 +435,7 @@ lazy_static!{
                 .name("get_width")
                 .return_type(Some(LONG.clone()))
                 .impl_block(Some(ImplBlockDefBuilder::default()
-                    .trait_name("HasSize")
+                    .trait_name("HasIntSize")
                     .build().unwrap()))
                 .build().unwrap(),
 
@@ -361,7 +443,7 @@ lazy_static!{
                 .name("get_height")
                 .return_type(Some(LONG.clone()))
                 .impl_block(Some(ImplBlockDefBuilder::default()
-                    .trait_name("HasSize")
+                    .trait_name("HasIntSize")
                     .build().unwrap()))
                 .build().unwrap(),
 
@@ -390,7 +472,7 @@ lazy_static!{
                     .build().unwrap()))
                 .return_type(Some(DataType::swift_generic(None,
                     DataType::swift_struct("Texture", None))))
-                .build().unwrap(),
+                .build().unwrap()
         ])
         .build().unwrap(),
 
@@ -410,6 +492,17 @@ lazy_static!{
                 .build().unwrap(),
 
             ImplDefBuilder::default()
+                .trait_name("HasDragHandlers")
+                .trait_import(Some("ui::HasDragHandlers"))
+                .generics(vec![
+                  GenericDefBuilder::default()
+                      .symbol(Some("R"))
+                      .bound_type("HandlerRegistration")
+                      .build().unwrap()
+                ])
+                .build().unwrap(),
+
+            ImplDefBuilder::default()
                 .trait_name("HasMutableSize")
                 .trait_import(Some("ui::HasMutableSize"))
                 .build().unwrap(),
@@ -417,9 +510,32 @@ lazy_static!{
             ImplDefBuilder::default()
                 .trait_name("HasMutableLocation")
                 .trait_import(Some("ui::HasMutableLocation"))
+                .build().unwrap(),
+
+            ImplDefBuilder::default()
+                .trait_name("HasMutableVisibility")
+                .trait_import(Some("ui::HasMutableVisibility"))
                 .build().unwrap()
         ])
         .methods(vec![
+
+            MethodDefBuilder::default()
+                .name("add_drag_handler")
+                .impl_block(Some(ImplBlockDefBuilder::default()
+                    .trait_name("HasDragHandlers")
+                    .build().unwrap()))
+                .arguments(vec![
+                    ArgumentDefBuilder::default()
+                        .name("drag_handler")
+                        .data_type(DataType::rust_struct(
+                            "DragHandler",
+                            Some("ui::DragHandler")))
+                        .build().unwrap()
+                ])
+                .return_type(Some(DataType::swift_generic(Some("R"),
+                    DataType::swift_struct("HandlerRegistration", None))))
+                .build().unwrap(),
+
           MethodDefBuilder::default()
               .name("set_texture")
               .arguments(vec![
@@ -435,17 +551,38 @@ lazy_static!{
               .build().unwrap(),
 
           MethodDefBuilder::default()
+              .name("propagate_events_to")
+              .arguments(vec![
+                ArgumentDefBuilder::default()
+                    .name("sprite")
+                    .data_type(DataType::swift_generic(None,
+                        DataType::swift_struct("Sprite", None)))
+                    .build().unwrap()
+              ])
+              .impl_block(Some(ImplBlockDefBuilder::default()
+                  .trait_name("ui::Sprite")
+                  .build().unwrap()))
+              .build().unwrap(),
+
+          MethodDefBuilder::default()
+              .name("remove_from_parent")
+              .impl_block(Some(ImplBlockDefBuilder::default()
+                  .trait_name("ui::Sprite")
+                  .build().unwrap()))
+              .build().unwrap(),
+
+          MethodDefBuilder::default()
               .name("set_size_animated")
               .arguments(vec![
 
                 ArgumentDefBuilder::default()
                     .name("width")
-                    .data_type(LONG.clone())
+                    .data_type(DOUBLE.clone())
                     .build().unwrap(),
 
                 ArgumentDefBuilder::default()
                     .name("height")
-                    .data_type(LONG.clone())
+                    .data_type(DOUBLE.clone())
                     .build().unwrap(),
 
                 ArgumentDefBuilder::default()
@@ -464,12 +601,12 @@ lazy_static!{
 
                 ArgumentDefBuilder::default()
                     .name("left")
-                    .data_type(LONG.clone())
+                    .data_type(DOUBLE.clone())
                     .build().unwrap(),
 
                 ArgumentDefBuilder::default()
                     .name("top")
-                    .data_type(LONG.clone())
+                    .data_type(DOUBLE.clone())
                     .build().unwrap(),
 
                 ArgumentDefBuilder::default()
@@ -482,7 +619,20 @@ lazy_static!{
                   .build().unwrap()))
               .build().unwrap(),
 
+          MethodDefBuilder::default()
+              .name("set_visible")
+              .arguments(vec![
+                ArgumentDefBuilder::default()
+                    .name("visible")
+                    .data_type(BOOLEAN.clone())
+                    .build().unwrap()
+              ])
+              .impl_block(Some(ImplBlockDefBuilder::default()
+                  .trait_name("HasMutableVisibility")
+                  .build().unwrap()))
+              .build().unwrap()
         ])
+        .custom_rust_drop_code(Some("ui::Sprite::remove_from_parent(self);"))
         .build().unwrap(),
 
     // Views

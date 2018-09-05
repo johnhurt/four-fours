@@ -5,6 +5,9 @@ extern crate log;
 extern crate simplelog;
 extern crate itertools;
 
+#[macro_use]
+extern crate getset;
+
 pub use self::lib_gen::*;
 pub use self::application_context::ApplicationContext;
 

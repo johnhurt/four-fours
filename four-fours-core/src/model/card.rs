@@ -32,7 +32,19 @@ macro_rules! define_cards {
   };
 }
 
-define_cards!(Plus, Minus);
+define_cards!(
+  Plus,
+  Minus,
+  Times,
+  Divide,
+  ParenL,
+  ParenR,
+  ZeroPoint,
+  Power,
+  Radical,
+  Inverse,
+  Factorial
+);
 
 impl Card {
   pub fn verify_number(num: i64) -> i64 {

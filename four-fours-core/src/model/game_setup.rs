@@ -1,10 +1,11 @@
 
 use model::Card;
 
+#[derive(Default)]
 pub struct GameSetup {
   goal: i64,
   required_cards: Vec<Card>,
-  card_stacks: Vec<Card>,
+  supply_cards: Vec<Card>,
 }
 
 impl GameSetup {
@@ -15,12 +16,12 @@ impl GameSetup {
         all_non_number_cards!())
   }
 
-  pub fn new(goal: i64, required_cards: Vec<Card>, card_stacks: Vec<Card>)
+  pub fn new(goal: i64, required_cards: Vec<Card>, supply_cards: Vec<Card>)
       -> GameSetup {
     GameSetup {
       goal: goal,
       required_cards: required_cards,
-      card_stacks:card_stacks
+      supply_cards: supply_cards
     }
   }
 
@@ -32,7 +33,7 @@ impl GameSetup {
     &self.required_cards
   }
 
-  pub fn card_stacks(&self) -> &Vec<Card> {
-    &self.card_stacks
+  pub fn supply_cards(&self) -> &Vec<Card> {
+    &self.supply_cards
   }
 }

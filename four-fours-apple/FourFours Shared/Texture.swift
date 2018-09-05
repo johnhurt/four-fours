@@ -20,6 +20,7 @@ class Texture {
     texture.preload {
       print("Texture loaded size: \(self.texture.size())")
     }
+    texture.filteringMode = SKTextureFilteringMode.linear
   }
 
   convenience init(resourceName: String) {

@@ -17,6 +17,14 @@ lazy_static! {
           .build().unwrap()
       );
 
+  pub static ref BOOLEAN : DataType = DataType::Primitive(
+      PrimitiveDataTypeBuilder::default()
+          .name("Boolean")
+          .rust_name("bool")
+          .swift_name("Bool")
+          .build().unwrap()
+      );
+
   pub static ref MUTABLE_BYTE_POINTER : DataType = DataType::Primitive(
       PrimitiveDataTypeBuilder::default()
           .name("MutableBytePointer")
