@@ -4,8 +4,7 @@ use ui::{
   Sprite,
   SpriteSource,
   HasMutableVisibility,
-  DragHandler,
-  HandlerRegistration
+  DragHandler
 };
 
 const SYMBOL_WIDTH_FRAC : f64 = 0.6;
@@ -82,10 +81,22 @@ impl <T,S> UiCard<S>
 
   }
 
+  /// Set the location and size of this card immediately.  This will set the
+  /// location and shape of the card background sprite and the symbol sprite
+  /// of this card will be aspet scaled to fit in the middle
   pub fn set_location_and_size(&self,
       left: f64, top: f64, width: f64, height: f64) {
-    self.card_sprite.set_size(width, height);
-    self.card_sprite.set_location(left, top);
+    self.set_location_and_size_animated(left, top, width, height, 0.);
+  }
+
+  /// Animate the movement of this card from its current location to the
+  /// given location after the given number of seconds.  This will set the
+  /// location and shape of the card background sprite and the symbol sprite
+  /// of this card will be aspet scaled to fit in the middle
+  pub fn set_location_and_size_animated(&self,
+      left: f64, top: f64, width: f64, height: f64, duration_seconds: f64) {
+    self.card_sprite.set_size_animated(width, height, duration_seconds);
+    self.card_sprite.set_location_animated(left, top, duration_seconds);
 
     let sym_ar = self.symbol_texture_aspect_ratio;
 
@@ -94,8 +105,14 @@ impl <T,S> UiCard<S>
     let sym_left = left + width / 2.0 - sym_width / 2.0;
     let sym_top = top + height / 2.0 - sym_height / 2.0;
 
-    self.symbol_sprite.set_size(sym_width, sym_height);
-    self.symbol_sprite.set_location(sym_left, sym_top);
+    self.symbol_sprite.set_size_animated(
+        sym_width,
+        sym_height,
+        duration_seconds);
+    self.symbol_sprite.set_location_animated(
+        sym_left,
+        sym_top,
+        duration_seconds);
   }
 }
 

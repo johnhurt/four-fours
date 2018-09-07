@@ -1,12 +1,10 @@
-#[macro_use]
-extern crate lazy_static;
-#[macro_use]
-extern crate log;
+#[macro_use] extern crate lazy_static;
+#[macro_use] extern crate log;
+#[macro_use] extern crate getset;
+#[macro_use] extern crate derive_builder;
+
 extern crate simplelog;
 extern crate itertools;
-
-#[macro_use]
-extern crate getset;
 
 pub use self::lib_gen::*;
 pub use self::application_context::ApplicationContext;

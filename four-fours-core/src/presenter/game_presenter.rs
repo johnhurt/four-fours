@@ -206,13 +206,21 @@ impl <V,S> GamePresenter<V,S>
         drag_handler)
   }
 
-  fn on_drag_start(&self,
+  /// handle the initialization of a supply card being dragged.  This will
+  /// create a new ui card and load it into the display state's dragged-card
+  /// display state
+  fn on_supply_card_drag_start(&self,
       card: Card,
       window_x: f64,
       window_y: f64,
       card_x: f64,
       card_y: f64) {
-    info!("Drag started: {}, {}, {}, {}", window_x, window_y, card_x, card_y);
+    info!("Supply card drag started: {}, {}, {}, {}",
+        window_x,
+        window_y,
+        card_x,
+        card_y);
+
     let mut display_state
         = self.display_state.write().unwrap();
     let new_card = self.create_ui_card(card.clone(), None);
@@ -220,17 +228,19 @@ impl <V,S> GamePresenter<V,S>
 
     let mut drag_display_state = DraggedCardDisplayState::new(
         new_card,
+        window_x - card_x,
+        window_y - card_y,
         display_state.supply_card_width().clone(),
         display_state.supply_card_height().clone(),
         card_x,
         card_y);
 
-    drag_display_state.drag_move(window_x, window_y);
-
     display_state.set_card_in_flight(Some(drag_display_state));
   }
 
-
+  /// Handle the movement of a drag while a card is in flight.  This will
+  /// handle the determination of where within the cards in play the card
+  /// in flight will be placed
   fn on_drag_move(&self, drag_x: f64, drag_y: f64) {
     info!("Drag moved: {}, {}", drag_x, drag_y);
     let mut display_state
@@ -239,6 +249,31 @@ impl <V,S> GamePresenter<V,S>
     if let Some(drag_state) = display_state.card_in_flight_mut() {
       drag_state.drag_move(drag_x, drag_y);
     }
+  }
+
+  /// Handles the positive release of a dragged supply card
+  fn on_supply_card_drag_end(&self, drag_x: f64, drag_y: f64) {
+    info!("Supply card drag end: {}, {}", drag_x, drag_y);
+
+    let mut display_state
+        = self.display_state.write().unwrap();
+    {
+      let drag_state_opt = display_state.card_in_flight_mut();
+
+      if let Some(drag_state) = drag_state_opt {
+        let left = drag_state.left_orig().clone();
+        let top= drag_state.top_orig().clone();
+        let width = drag_state.width_orig().clone();
+        let height = drag_state.height_orig().clone();
+
+        let card  = drag_state.card();
+
+        card.set_location_and_size_animated(left, top, width, height, 0.3);
+      }
+    }
+
+    display_state.set_card_in_flight(None);
+
   }
 
   /// Update the display state of the presenter to match the given state.
@@ -260,19 +295,20 @@ impl <V,S> GamePresenter<V,S>
     for card in game_state.setup().supply_cards() {
       let copied_self_start = _self.clone();
       let copied_self_move = _self.clone();
+      let copied_self_end = _self.clone();
       let copied_card = card.clone();
       let ui_card = _self.create_ui_card(
           card.clone(),
           Some(create_drag_handler!(
               on_drag_start(wx, wy, lx, ly) {
-                copied_self_start.clone().on_drag_start(
+                copied_self_start.on_supply_card_drag_start(
                     copied_card.clone(), wx, wy, lx, ly);
               },
               on_drag_move(wx, wy, _lx, _ly) {
                 copied_self_move.on_drag_move(wx, wy);
               },
               on_drag_end(wx, wy, lx, ly) {
-                info!("drag end: {}, {}, {}, {}", wx, wy, lx, ly);
+                copied_self_end.on_supply_card_drag_end(wx, wy);
               }
             )));
       new_display_state.supply_cards_mut().push(ui_card);

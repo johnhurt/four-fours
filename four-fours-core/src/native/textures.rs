@@ -1,4 +1,4 @@
-use std::{time, thread};
+
 use native::{Texture, TextureLoader};
 
 macro_rules! count {
@@ -43,7 +43,6 @@ macro_rules! define_texture_atlas {
         progress_callback(counter / sub_tex_count);
 
         $(
-          thread::sleep(time::Duration::from_millis(50));
           let $name = texture_atlas.get_sub_texture(
                 ($left) * tile_width,
                 ($top) * tile_height,

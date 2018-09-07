@@ -44,16 +44,28 @@ class Sprite : SKSpriteNode {
   }
   
   func setSizeAnimated(_ width: Float64, _ height: Float64, _ durationSeconds: Float64) {
-    run(SKAction.resize(
+    let resize = SKAction.resize(
         toWidth: CGFloat(width),
         height: CGFloat(height),
-        duration: durationSeconds))
+        duration: durationSeconds)
+    
+    if durationSeconds > 0.0 {
+      resize.timingMode = .easeInEaseOut
+    }
+    
+    run(resize)
   }
   
   func setLocationAnimated(_ left: Float64, _ top: Float64, _ durationSeconds: Float64) {
-    run(SKAction.move(to: CGPoint(x: CGFloat(left), y: -CGFloat(top)),
-                  duration: durationSeconds))
+    let move = SKAction.move(
+        to: CGPoint(x: CGFloat(left), y: -CGFloat(top)),
+        duration: durationSeconds)
     
+    if durationSeconds > 0.0 {
+      move.timingMode = .easeInEaseOut
+    }
+    
+    run(move)
   }
   
   func addDragHandler(_ handler: DragHandler) -> HandlerRegistration {
@@ -81,6 +93,12 @@ class Sprite : SKSpriteNode {
     }
   }
   
+  override func removeFromParent() {
+    DispatchQueue.main.asyncAfter(deadline: DispatchTime.now() + 1, execute: {
+      super.removeFromParent()
+    })
+  }
+  
   deinit {
     print("Dropping Sprite")
   }
@@ -89,13 +107,66 @@ class Sprite : SKSpriteNode {
 extension Sprite {
   
   #if os(iOS) || os(tvOS)
-  override func touchesStart(_ touches: Set<UITouch>, with event: UIEvent?) {
+  override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+    
     DispatchQueue.main.async {
+      self.eventSink?.touchesBegan(touches, with: event)
+      
+      let firstTouch = touches.first!
+      
+      let localPoint = firstTouch.location(in: self)
+      let windowPoint = firstTouch.location(in: nil)
+      
       self.dragHandlers.forEach { (handler) in
-        handler.onDragStart(x: Float64(event.absoluteX), y: Float64(event.absoluteY))
+        handler.onDragStart(
+            globalX: Float64(windowPoint.x),
+            globalY: Float64(windowPoint.y),
+            localX: Float64(localPoint.x),
+            localY: -Float64(localPoint.y))
       }
     }
   }
+  
+  override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+    
+    DispatchQueue.main.async {
+      self.eventSink?.touchesMoved(touches, with: event)
+      
+      let firstTouch = touches.first!
+      
+      let localPoint = firstTouch.location(in: self)
+      let windowPoint = firstTouch.location(in: nil)
+      
+      self.dragHandlers.forEach { (handler) in
+        handler.onDragMove(
+          globalX: Float64(windowPoint.x),
+          globalY: Float64(windowPoint.y),
+          localX: Float64(localPoint.x),
+          localY: -Float64(localPoint.y))
+      }
+    }
+  }
+  
+  override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+    
+    DispatchQueue.main.async {
+      self.eventSink?.touchesEnded(touches, with: event)
+      
+      let firstTouch = touches.first!
+      
+      let localPoint = firstTouch.location(in: self)
+      let windowPoint = firstTouch.location(in: nil)
+      
+      self.dragHandlers.forEach { (handler) in
+        handler.onDragEnd(
+          globalX: Float64(windowPoint.x),
+          globalY: Float64(windowPoint.y),
+          localX: Float64(localPoint.x),
+          localY: -Float64(localPoint.y))
+      }
+    }
+  }
+  
   #endif
   
   #if os(OSX)

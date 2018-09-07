@@ -10,6 +10,11 @@ pub struct DraggedCardDisplayState<S : Sprite> {
   #[get = "pub"]
   card: UiCard<S>,
 
+  #[get = "pub"] left_orig: f64,
+  #[get = "pub"] top_orig: f64,
+  #[get = "pub"] width_orig: f64,
+  #[get = "pub"] height_orig: f64,
+
   #[get = "pub"] left: f64,
   #[get = "pub"] top: f64,
   #[get = "pub"] width: f64,
@@ -24,6 +29,8 @@ pub struct DraggedCardDisplayState<S : Sprite> {
 impl <S:Sprite> DraggedCardDisplayState<S> {
 
   pub fn new(card: UiCard<S>,
+      left: f64,
+      top: f64,
       width: f64,
       height: f64,
       drag_x_in_card: f64,
@@ -32,17 +39,26 @@ impl <S:Sprite> DraggedCardDisplayState<S> {
     let left_from_drag_point_frac = drag_x_in_card / width;
     let top_from_drag_point_frac = drag_y_in_card / height;
 
-    DraggedCardDisplayState {
+    let mut result = DraggedCardDisplayState {
       card: card,
 
-      left: 0.,
-      top: 0.,
+      left_orig: left,
+      top_orig: top,
+      width_orig: width,
+      height_orig: height,
+
+      left: left,
+      top: top,
       width: width,
       height: height,
 
       left_from_drag_point_frac: left_from_drag_point_frac,
       top_from_drag_point_frac: top_from_drag_point_frac
-    }
+    };
+
+    result.update_card();
+
+    result
   }
 
   pub fn drag_move(&mut self, drag_x: f64, drag_y: f64) {
@@ -58,5 +74,9 @@ impl <S:Sprite> DraggedCardDisplayState<S> {
         self.top,
         self.width,
         self.height);
+  }
+
+  fn extract_card(self) -> UiCard<S> {
+    self.card
   }
 }
