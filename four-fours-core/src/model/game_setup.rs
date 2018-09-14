@@ -12,7 +12,7 @@ impl GameSetup {
   pub fn simple_new(goal: i64, required_cards: Vec<i64>) -> GameSetup {
     GameSetup::new(
         goal,
-        required_cards.iter().map(|v| number_card!(*v)).collect(),
+        required_cards.iter().map(|v| required_number_card!(*v)).collect(),
         all_non_number_cards!())
   }
 

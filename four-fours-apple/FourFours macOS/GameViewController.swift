@@ -21,12 +21,8 @@ class GameViewController: NSViewController, NSWindowDelegate {
     
     // Present the scene
     self.skView = self.view as? SKView
-  
-    self.screenScale = NSScreen.main?.backingScaleFactor
-    let nativeSize = self.view.frame.size
-    let scaledSize = scaleSize(nativeSize: nativeSize)
     
-    self.scene = GameScene.newGameScene(size: scaledSize)
+    self.scene = GameScene.newGameScene(size: (self.skView?.bounds.size)!)
     self.skView!.presentScene(self.scene)
   
     self.skView!.ignoresSiblingOrder = true
@@ -37,26 +33,19 @@ class GameViewController: NSViewController, NSWindowDelegate {
   
   override func viewDidAppear() {
     self.view.window?.delegate = self
-    self.viewDidLayout()
+    handleLayout()
   }
   
-  func scaleSize(nativeSize: CGSize) -> CGSize {
-    return CGSize(
-      width: nativeSize.width,
-      height: nativeSize.height)
+  func windowDidResize(_ notification: Notification) {
+    handleLayout()
   }
   
-  func windowDidChangeScreen(_ notification: Notification) {
-    self.screenScale = NSScreen.main?.backingScaleFactor
-    self.viewDidLayout()
-  }
-  
-  override func viewDidLayout() {
-    super.viewDidLayout()
-    let nativeSize = self.view.frame.size;
+  func handleLayout() {
+    let size = self.view.window?.contentView?.bounds.size;
+    if (size != nil) {
+      self.scene?.setSize(size: size!)
+    }
     
-    self.scene?.setSize(size: scaleSize(nativeSize: nativeSize))
   }
-  
 }
 

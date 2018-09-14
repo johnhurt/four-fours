@@ -16,6 +16,7 @@ pub struct UiCard<S>
   symbol_sprite: S,
   symbol_texture_aspect_ratio: f64,
   card: Card,
+  required_play_card: bool,
   _drag_handler_registration: Option<S::R>,
 }
 
@@ -26,6 +27,7 @@ impl <T,S> UiCard<S>
 
   pub fn new(
       card: Card,
+      required_play_card: bool,
       textures: &Textures<T>,
       sprite_source: &SpriteSource<T = T, S = S>,
       drag_handler_opt: Option<DragHandler>)
@@ -37,7 +39,7 @@ impl <T,S> UiCard<S>
     card_sprite.set_texture(textures.card());
 
     let symbol_texture = match card {
-      Card::Number(val) => {
+      Card::Number(val, _) => {
         match val {
           1 => textures.symbols().one(),
           2 => textures.symbols().two(),
@@ -72,6 +74,7 @@ impl <T,S> UiCard<S>
 
     UiCard {
       card: card,
+      required_play_card: required_play_card,
       _drag_handler_registration: drag_handler_opt
           .map(|drag_handler| (&card_sprite).add_drag_handler(drag_handler)),
       card_sprite: card_sprite,

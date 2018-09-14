@@ -1,7 +1,7 @@
 
-macro_rules! number_card {
+macro_rules! required_number_card {
   ($num:expr) => {
-    Card::Number(Card::verify_number($num));
+    Card::Number(Card::verify_number($num), true);
   };
 }
 
@@ -10,7 +10,7 @@ macro_rules! define_cards {
 
     #[derive(Clone)]
     pub enum Card {
-      Number(i64),
+      Number(i64, bool),
       $(
         $op,
       )*
@@ -52,5 +52,12 @@ impl Card {
       panic!("Number cards can only have a value between 1 and 9 (inclusive)");
     }
     num
+  }
+
+  pub fn is_required_in_play(&self) -> bool {
+    match self {
+      Card::Number(num, required) => required.clone(),
+      _ => false
+    }
   }
 }
