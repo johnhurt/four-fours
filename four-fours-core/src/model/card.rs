@@ -8,7 +8,7 @@ macro_rules! required_number_card {
 macro_rules! define_cards {
   ($($op:ident),*) => {
 
-    #[derive(Clone)]
+    #[derive(Clone, PartialEq)]
     pub enum Card {
       Number(i64, bool),
       $(
@@ -56,7 +56,7 @@ impl Card {
 
   pub fn is_required_in_play(&self) -> bool {
     match self {
-      Card::Number(num, required) => required.clone(),
+      Card::Number(_, required) => required.clone(),
       _ => false
     }
   }

@@ -1,23 +1,28 @@
-use model::{Card};
+use model::{
+  Rect,
+  Card,
+};
 use native::{ Texture, Textures };
 use ui::{
   Sprite,
   SpriteSource,
-  HasMutableVisibility,
-  DragHandler
+  HasMutableVisibility
 };
 
 const SYMBOL_WIDTH_FRAC : f64 = 0.6;
 
+#[derive(Getters,Setters)]
 pub struct UiCard<S>
     where
         S: Sprite {
   card_sprite: S,
   symbol_sprite: S,
   symbol_texture_aspect_ratio: f64,
-  card: Card,
-  required_play_card: bool,
-  _drag_handler_registration: Option<S::R>,
+
+  #[get = "pub"] card: Card,
+
+  #[get = "pub"] required_play_card: bool,
+  #[get = "pub"] #[set = "pub"] play_area_ord: Option<usize>
 }
 
 impl <T,S> UiCard<S>
@@ -27,10 +32,10 @@ impl <T,S> UiCard<S>
 
   pub fn new(
       card: Card,
+      play_area_ord: Option<usize>,
       required_play_card: bool,
       textures: &Textures<T>,
-      sprite_source: &SpriteSource<T = T, S = S>,
-      drag_handler_opt: Option<DragHandler>)
+      sprite_source: &SpriteSource<T = T, S = S>)
           -> UiCard<S> {
 
     let card_sprite = sprite_source.create_sprite();
@@ -68,15 +73,10 @@ impl <T,S> UiCard<S>
 
     symbol_sprite.set_texture(symbol_texture);
 
-    if drag_handler_opt.is_some() {
-      symbol_sprite.propagate_events_to(&card_sprite);
-    }
-
     UiCard {
       card: card,
+      play_area_ord: play_area_ord,
       required_play_card: required_play_card,
-      _drag_handler_registration: drag_handler_opt
-          .map(|drag_handler| (&card_sprite).add_drag_handler(drag_handler)),
       card_sprite: card_sprite,
       symbol_sprite: symbol_sprite,
       symbol_texture_aspect_ratio: symbol_texture.get_aspect_ratio()
@@ -87,17 +87,20 @@ impl <T,S> UiCard<S>
   /// Set the location and size of this card immediately.  This will set the
   /// location and shape of the card background sprite and the symbol sprite
   /// of this card will be aspet scaled to fit in the middle
-  pub fn set_location_and_size(&self,
-      left: f64, top: f64, width: f64, height: f64) {
-    self.set_location_and_size_animated(left, top, width, height, 0.);
+  pub fn set_rect(&self, rect: &Rect) {
+    self.set_rect_animated(rect, 0.);
   }
 
   /// Animate the movement of this card from its current location to the
   /// given location after the given number of seconds.  This will set the
   /// location and shape of the card background sprite and the symbol sprite
   /// of this card will be aspet scaled to fit in the middle
-  pub fn set_location_and_size_animated(&self,
-      left: f64, top: f64, width: f64, height: f64, duration_seconds: f64) {
+  pub fn set_rect_animated(&self, rect: &Rect, duration_seconds: f64) {
+    let left = rect.top_left.x;
+    let top = rect.top_left.y;
+    let width = rect.size.width;
+    let height = rect.size.height;
+
     self.card_sprite.set_size_animated(width, height, duration_seconds);
     self.card_sprite.set_location_animated(left, top, duration_seconds);
 

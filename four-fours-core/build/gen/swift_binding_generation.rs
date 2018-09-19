@@ -737,6 +737,16 @@ lazy_static!{
                         .bound_type("HandlerRegistration")
                         .build().unwrap()
                 ])
+                .build().unwrap(),
+            ImplDefBuilder::default()
+                .trait_name("HasDragHandlers")
+                .trait_import(Some("ui::HasDragHandlers"))
+                .generics(vec![
+                    GenericDefBuilder::default()
+                        .symbol(Some("R"))
+                        .bound_type("HandlerRegistration")
+                        .build().unwrap()
+                ])
                 .build().unwrap()
         ])
         .fields(vec![
@@ -750,6 +760,23 @@ lazy_static!{
             //     .build().unwrap()
         ])
         .methods(vec![
+            MethodDefBuilder::default()
+                .name("add_drag_handler")
+                .impl_block(Some(ImplBlockDefBuilder::default()
+                    .trait_name("HasDragHandlers")
+                    .build().unwrap()))
+                .arguments(vec![
+                    ArgumentDefBuilder::default()
+                        .name("drag_handler")
+                        .data_type(DataType::rust_struct(
+                            "DragHandler",
+                            Some("ui::DragHandler")))
+                        .build().unwrap()
+                ])
+                .return_type(Some(DataType::swift_generic(Some("R"),
+                    DataType::swift_struct("HandlerRegistration", None))))
+                .build().unwrap(),
+
             MethodDefBuilder::default()
                 .name("add_layout_handler")
                 .impl_block(Some(ImplBlockDefBuilder::default()

@@ -1,6 +1,7 @@
-use std::time::{
-  Duration,
-  Instant
+
+use model::{
+  Rect,
+  Point
 };
 
 use ui::{
@@ -8,59 +9,41 @@ use ui::{
   UiCard
 };
 
-#[derive(Getters,Setters)]
+#[derive(Getters,MutGetters,Setters)]
 pub struct DraggedCardDisplayState<S : Sprite> {
 
   #[get = "pub"]
   card: UiCard<S>,
 
-  #[get = "pub"] #[set = "pub"] play_area_ord: Option<usize>,
+  #[get = "pub"] orig_play_area_ord: Option<usize>,
+  #[get = "pub"] #[set = "pub"] #[get_mut = "pub"] play_area_ord: Option<usize>,
 
-  #[get = "pub"] left_orig: f64,
-  #[get = "pub"] top_orig: f64,
-  #[get = "pub"] width_orig: f64,
-  #[get = "pub"] height_orig: f64,
+  #[get = "pub"] rect: Rect,
 
-  #[get = "pub"] left: f64,
-  #[get = "pub"] top: f64,
-  #[get = "pub"] width: f64,
-  #[get = "pub"] height: f64,
-
-
-  #[get = "pub"] left_from_drag_point_frac: f64,
-  #[get = "pub"] top_from_drag_point_frac: f64,
+  #[get = "pub"] drag_point_from_top_left_frac: Point
 }
 
 impl <S:Sprite> DraggedCardDisplayState<S> {
 
   pub fn new(card: UiCard<S>,
-      left: f64,
-      top: f64,
-      width: f64,
-      height: f64,
-      drag_x_in_card: f64,
-      drag_y_in_card: f64) -> DraggedCardDisplayState<S> {
+      original_play_area_ord: Option<usize>,
+      rect: &Rect,
+      drag_point_in_card: &Point) -> DraggedCardDisplayState<S> {
 
-    let left_from_drag_point_frac = drag_x_in_card / width;
-    let top_from_drag_point_frac = drag_y_in_card / height;
+    let drag_point_from_top_left_frac = Point {
+      x: drag_point_in_card.x / rect.size.width,
+      y: drag_point_in_card.y / rect.size.height
+    };
 
     let mut result = DraggedCardDisplayState {
       card: card,
 
+      orig_play_area_ord: original_play_area_ord,
       play_area_ord: None,
 
-      left_orig: left,
-      top_orig: top,
-      width_orig: width,
-      height_orig: height,
+      rect: rect.clone(),
 
-      left: left,
-      top: top,
-      width: width,
-      height: height,
-
-      left_from_drag_point_frac: left_from_drag_point_frac,
-      top_from_drag_point_frac: top_from_drag_point_frac
+      drag_point_from_top_left_frac: drag_point_from_top_left_frac
     };
 
     result.update_card();
@@ -69,8 +52,10 @@ impl <S:Sprite> DraggedCardDisplayState<S> {
   }
 
   pub fn drag_move(&mut self, drag_x: f64, drag_y: f64) {
-    self.left = drag_x - self.left_from_drag_point_frac * self.width;
-    self.top = drag_y - self.top_from_drag_point_frac * self.height;
+    self.rect.top_left.x = drag_x
+        - self.drag_point_from_top_left_frac.x * self.rect.size.width;
+    self.rect.top_left.y = drag_y
+        - self.drag_point_from_top_left_frac.y * self.rect.size.height;
 
     self.update_card();
   }
@@ -79,28 +64,28 @@ impl <S:Sprite> DraggedCardDisplayState<S> {
   /// card is the given width and the location and propportional distance from
   /// the top and left of the card to the drag point does not change
   pub fn scale_width_to(&mut self, new_width: f64) {
-    let new_height = new_width * self.height / self.width;
-    let new_left = self.left
-        + self.left_from_drag_point_frac * (self.width - new_width);
-    let new_top = self.top
-        + self.top_from_drag_point_frac * (self.height - new_height);
-    self.left = new_left;
-    self.top = new_top;
-    self.width = new_width;
-    self.height = new_height;
+    let new_height = new_width / self.rect.size.aspect_ratio();
+    let new_left = self.rect.top_left.x + self.drag_point_from_top_left_frac.x
+        * (self.rect.size.width - new_width);
+    let new_top = self.rect.top_left.y + self.drag_point_from_top_left_frac.y
+        * (self.rect.size.height - new_height);
+    self.rect.top_left.x = new_left;
+    self.rect.top_left.y = new_top;
+    self.rect.size.width = new_width;
+    self.rect.size.height = new_height;
 
     self.update_card();
   }
 
   fn update_card(&mut self) {
-    self.card.set_location_and_size(
-        self.left,
-        self.top,
-        self.width,
-        self.height);
+    self.card.set_rect(&self.rect);
   }
 
-  pub fn card_center(&self) -> (f64, f64) {
-    (self.left + self.width / 2., self.top + self.height / 2.)
+  pub fn card_center(&self) -> Point {
+    self.rect.center()
+  }
+
+  pub fn take_card(self) -> UiCard<S> {
+    self.card
   }
 }

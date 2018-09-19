@@ -1,5 +1,9 @@
 
-use std::sync::{Mutex,Arc,RwLock};
+use std::sync::{
+  Mutex,
+  Arc,
+  RwLock
+};
 
 use event::{
   EventBus,
@@ -10,7 +14,9 @@ use event::{
 };
 
 use model::{
-  BindPoint,
+  Point,
+  Size,
+  Rect,
   GameState,
   Card,
   GameSetup,
@@ -73,8 +79,8 @@ impl <V,S> EventListener<Layout> for GamePresenter<V,S>
     let card_aspect_ratio
         = self.runtime_resources.textures().card().get_aspect_ratio();
 
-    display_state.set_width(width);
-    display_state.set_height(height);
+    display_state.size_mut().width = width;
+    display_state.size_mut().height = height;
     display_state.set_card_aspect_ratio(card_aspect_ratio);
 
     let max_card_height = height * MAX_CARD_HEIGHT_FRAC;
@@ -94,7 +100,7 @@ impl <V,S> EventListener<Layout> for GamePresenter<V,S>
 
     let supply_cards_per_row
         = ((playing_area_width + min_supply_card_spacing)
-            / (supply_card_width + min_supply_card_spacing)).floor();
+            / (supply_card_width + min_supply_card_spacing) + 0.1).floor();
 
     let supply_row_count = (supply_card_count / supply_cards_per_row).ceil();
 
@@ -121,32 +127,30 @@ impl <V,S> EventListener<Layout> for GamePresenter<V,S>
     let first_supply_card_left = width / 2.0 - supply_width / 2.0;
 
     display_state.set_border_thickness(border_thickness);
-    display_state.set_supply_card_width(supply_card_width);
-    display_state.set_supply_card_height(supply_card_height);
+    display_state.supply_card_size_mut().width = supply_card_width;
+    display_state.supply_card_size_mut().height = supply_card_height;
     display_state.set_supply_card_spacing(supply_card_spacing);
+    display_state.set_supply_cards_per_row(supply_cards_per_row);
 
     display_state.set_supply_row_count(supply_row_count);
-    display_state.set_supply_left(first_supply_card_left);
-    display_state.set_supply_top(first_supply_card_top);
-    display_state.set_supply_width(supply_width);
-    display_state.set_supply_height(supply_height);
+
+    {
+      let supply_rect = display_state.supply_rect_mut();
+      supply_rect.top_left.x = first_supply_card_left;
+      supply_rect.top_left.y = first_supply_card_top;
+      supply_rect.size.width = supply_width;
+      supply_rect.size.height = supply_height;
+    }
 
     display_state
         .supply_cards()
         .iter()
         .enumerate()
         .for_each(|(i, card)| {
-          let supply_card_top = first_supply_card_top
-              + (supply_card_height + supply_card_spacing)
-              * ((i / (supply_cards_per_row as usize)) as f64);
-          let supply_card_left = first_supply_card_left
-              + (supply_card_width + supply_card_spacing)
-              * ((i % (supply_cards_per_row as usize)) as f64);
-          card.set_location_and_size(
-              supply_card_left,
-              supply_card_top,
-              supply_card_width,
-              supply_card_height);
+
+          info!("index: {}", i);
+          card.set_rect(
+              &display_state.get_supply_card_rect_by_index(&i).unwrap());
           card.set_visible(true);
         });
     self.layout_play_area_cards(&mut *display_state, 0.);
@@ -169,32 +173,43 @@ impl <V,S> GamePresenter<V,S>
       _ => None
     };
 
-    let width = display_state.width().clone();
-    let height = display_state.height().clone();
+    let width = display_state.size().width;
+    let height = display_state.size().height;
     let card_aspect_ratio = display_state.card_aspect_ratio().clone();
     let border_thickness = display_state.border_thickness().clone();
-    let supply_top = display_state.supply_top().clone();
+    let supply_top = display_state.supply_rect().top_left.y;
 
     let available_play_area_width = width - 2.0 * border_thickness;
     let max_card_height = height * MAX_CARD_HEIGHT_FRAC;
     let max_card_width = (card_aspect_ratio * max_card_height).min(
         available_play_area_width * MAX_CARD_WIDTH_FRAC);
 
-    let play_card_count
+    let play_card_slots
         = display_state.cards_in_play().len() as f64
         + if drag_card_ord.is_some() { 1. } else { 0. };
 
-    let play_card_width = MIN_PLAY_CARD_WIDTH_PTS.max(max_card_width.min(
-          available_play_area_width / ( play_card_count
-              + (play_card_count - 1.0) * SPACING_FRACTION )));
+    let natural_card_width = available_play_area_width
+        / ( play_card_slots + (play_card_slots - 1.0) * SPACING_FRACTION );
+
+    let play_card_width = MIN_PLAY_CARD_WIDTH_PTS.max(
+        max_card_width.min(natural_card_width));
 
     let min_play_card_spacing = SPACING_FRACTION * play_card_width;
 
     let play_cards_per_row
         = ((available_play_area_width + min_play_card_spacing)
-            / (play_card_width + min_play_card_spacing)).floor();
+            / (play_card_width + min_play_card_spacing) + 0.1).floor();
 
-    let play_area_row_count = (play_card_count / play_cards_per_row).ceil();
+    // info!("slots {}, avail {}, min_space {}, width {}, natural_width {}, min_width {}, max_width {}",
+    //     play_card_slots,
+    //     available_play_area_width,
+    //     min_play_card_spacing,
+    //     play_card_width,
+    //     natural_card_width,
+    //     MIN_PLAY_CARD_WIDTH_PTS,
+    //     max_card_width);
+
+    let play_area_row_count = (play_card_slots / play_cards_per_row).ceil();
 
     let play_card_spacing
         = if play_cards_per_row > 1.0 {
@@ -206,7 +221,7 @@ impl <V,S> GamePresenter<V,S>
         };
 
     let play_area_width
-        = play_cards_per_row.min(play_card_count) * play_card_width
+        = play_cards_per_row.min(play_card_slots) * play_card_width
             + (play_cards_per_row - 1.) * play_card_spacing;
 
     let play_card_height = play_card_width / card_aspect_ratio;
@@ -220,11 +235,23 @@ impl <V,S> GamePresenter<V,S>
             - play_area_height / 2.0 + border_thickness;
     let first_play_card_left = width / 2.0 - play_area_width / 2.0;
 
-    let mut bind_points : Vec<(f64,Vec<(f64,BindPoint)>)> = Vec::default();
+    display_state.play_card_size_mut().width = play_card_width;
+    display_state.play_card_size_mut().height = play_card_height;
+    display_state.set_play_card_spacing(play_card_spacing);
+    display_state.set_play_cards_per_row(play_cards_per_row);
+    display_state.set_play_card_slots(play_card_slots);
 
-    for i in 0..(play_card_count as usize) {
+    display_state.set_play_area_row_count(play_area_row_count);
+    display_state.play_area_rect_mut().top_left.x = first_play_card_left;
+    display_state.play_area_rect_mut().top_left.y = first_play_card_top;
+    display_state.play_area_rect_mut().size.width = play_area_width;
+    display_state.play_area_rect_mut().size.height = play_area_height;
+
+    let mut bind_points : Vec<(f64,Vec<(f64,usize)>)> = Vec::default();
+
+    for i in 0..(play_card_slots as usize) {
       let row : usize = i / (play_cards_per_row as usize);
-      let col : usize = i % (play_cards_per_row as usize);
+
       let card_index_opt = match drag_card_ord {
         None => Some(i),
         Some(drag_ord) => {
@@ -235,51 +262,30 @@ impl <V,S> GamePresenter<V,S>
         }
       };
 
-      let play_card_top = first_play_card_top
-          + (play_card_height + play_card_spacing)
-          * (row as f64);
+      let play_card_rect
+          = display_state.get_play_card_rect_by_index(&i).unwrap();
 
-      let play_card_left = first_play_card_left
-          + (play_card_width + play_card_spacing)
-          * (col as f64);
-
-      let bind_point_x = play_card_left + play_card_width / 2.;
-      let bind_point_y = play_card_top + play_card_height / 2.;
+      let bind_point = play_card_rect.center();
 
       if bind_points.len() < (row + 1) {
-        bind_points.push((bind_point_y, Vec::default()));
+        bind_points.push((bind_point.y, Vec::default()));
       }
 
       let (_, col_points) = bind_points.get_mut(row).unwrap();
 
-      col_points.push((bind_point_x, BindPoint::new(i, bind_point_x)));
+      col_points.push((bind_point.x, i));
 
       card_index_opt.map(|card_index| {
         let card_opt = display_state.cards_in_play_mut().get_mut(card_index);
         match card_opt {
           Some(card) => {
-            card.set_location_and_size_animated(
-                play_card_left,
-                play_card_top,
-                play_card_width,
-                play_card_height,
-                animation_time_secs);
+            card.set_rect_animated(&play_card_rect, animation_time_secs);
             card.set_visible(true);
           },
           _ => ()
         }
       });
     }
-
-    display_state.set_play_card_width(play_card_width);
-    display_state.set_play_card_height(play_card_height);
-    display_state.set_play_card_spacing(play_card_spacing);
-
-    display_state.set_play_area_row_count(play_area_row_count);
-    display_state.set_play_area_left(first_play_card_left);
-    display_state.set_play_area_top(first_play_card_top);
-    display_state.set_play_area_width(play_area_width);
-    display_state.set_play_area_height(play_area_height);
 
     display_state.set_bind_points(bind_points);
 
@@ -297,69 +303,102 @@ impl <V,S> GamePresenter<V,S>
     }
   }
 
-  /// Creates a ui card based on the given card
-  fn create_ui_card(&self,
-      card: Card,
-      required_play_card: bool,
-      drag_handler: Option<DragHandler>) -> UiCard<V::S> {
-    UiCard::new(
-        card,
-        required_play_card,
-        self.runtime_resources.textures(),
-        &self.view,
-        drag_handler)
+  fn on_play_card_drag_start(&self,
+      ord: usize,
+      drag_point_in_card: &Point,
+      card_rect: &Rect,
+      display_state: &mut GameDisplayState<V::S>)
+          -> DraggedCardDisplayState<V::S> {
+
+    info!("Dragging play card from {}", ord);
+
+    let ui_card = display_state.cards_in_play_mut().remove(ord);
+
+    DraggedCardDisplayState::new(
+        ui_card,
+        Some(ord),
+        card_rect,
+        drag_point_in_card)
   }
 
-  /// handle the initialization of a supply card being dragged.  This will
-  /// create a new ui card and load it into the display state's dragged-card
-  /// display state
+  /// Create a dragged card drag state using the given ui card as a sead
   fn on_supply_card_drag_start(&self,
-      card: Card,
-      window_x: f64,
-      window_y: f64,
-      card_x: f64,
-      card_y: f64) {
-    info!("Supply card drag started: {}, {}, {}, {}",
-        window_x,
-        window_y,
-        card_x,
-        card_y);
+      card: &Card,
+      drag_point_in_card: &Point,
+      card_rect: &Rect) -> DraggedCardDisplayState<V::S> {
+    let new_ui_card = self.create_ui_card(card, None, false);
+
+    let result = DraggedCardDisplayState::new(
+        new_ui_card,
+        None,
+        card_rect,
+        drag_point_in_card);
+
+    result.card().set_visible(true);
+
+    result
+  }
+
+  /// Creates a ui card based on the given card
+  fn create_ui_card(&self,
+      card: &Card,
+      play_area_ord: Option<usize>,
+      required_play_card: bool) -> UiCard<V::S> {
+    UiCard::new(
+        card.clone(),
+        play_area_ord,
+        required_play_card,
+        self.runtime_resources.textures(),
+        &self.view)
+  }
+
+  /// handle the initialization of a card being dragged.
+  fn on_drag_start(&self, drag_point: &Point) {
 
     let mut display_state
         = self.display_state.write().unwrap();
-    let new_card = self.create_ui_card(card.clone(), false, None);
-    new_card.set_visible(true);
 
-    let drag_display_state = DraggedCardDisplayState::new(
-        new_card,
-        window_x - card_x,
-        window_y - card_y,
-        display_state.supply_card_width().clone(),
-        display_state.supply_card_height().clone(),
-        card_x,
-        card_y);
+    let drag_state = match display_state.get_card_at(drag_point) {
+      Some(card_find_response) => {
+        match card_find_response.play_area_ord {
+          Some(ord) => {
+            Some(self.on_play_card_drag_start(ord,
+                &card_find_response.point_in_card,
+                &card_find_response.card_rect,
+                &mut *display_state))
+          },
+          None => {
+            Some(self.on_supply_card_drag_start(
+                &card_find_response.card,
+                &card_find_response.point_in_card,
+                &card_find_response.card_rect))
+          }
+        }
+      },
+      _ => None
+    };
 
-    display_state.set_card_in_flight(Some(drag_display_state));
+    display_state.set_card_in_flight(drag_state);
   }
 
   /// Calculate the width that the given dragged card should be based on its
   /// location and the overall display state
   fn get_dragged_card_width(&self,
-      card_center: &(f64, f64),
+      card_center: &Point,
       display_state: &GameDisplayState<V::S>)
           -> f64 {
-    let y = card_center.1;
+    let y = card_center.y;
 
-    let max_y = *display_state.supply_top()
-        + *display_state.supply_card_height() / 2.;
-    let min_y = *display_state.play_area_top()
-        + *display_state.play_area_height();
+    let max_y = display_state.supply_rect().top_left.y
+        + display_state.supply_card_size().height;
+    let min_y = display_state.play_area_rect().top_left.y
+        + display_state.play_area_rect().size.height;
     let clipped_y = min_y.max(max_y.min(y));
     let normalized_y = 1.0 - (clipped_y - min_y) / (max_y - min_y).max(1.);
 
-    *display_state.supply_card_width() + normalized_y
-        * (*display_state.play_card_width()
-            - *display_state.supply_card_width())
+    display_state.supply_card_size().width + normalized_y
+        * (display_state.play_card_size().width
+            - display_state.supply_card_size().width)
   }
 
   /// Handle the movement of a drag while a card is in flight.  This will
@@ -382,17 +421,13 @@ impl <V,S> GamePresenter<V,S>
       old_drag_ord_opt = drag_state.play_area_ord().clone();
 
       new_drag_ord_opt = display_state
-          .get_closest_bind_point(drag_x, drag_y)
-          .map(|bp| {
-            bp.index().clone()
-          });
+          .get_closest_bind_point(
+              &Point::new(drag_x, drag_y),
+              &old_drag_ord_opt);
     }
 
     // Change in drag state order
     if new_drag_ord_opt != old_drag_ord_opt {
-      info!("Drag ord changed from {:?} to {:?}",
-          old_drag_ord_opt,
-          new_drag_ord_opt);
       self.on_dragged_card_ordinal_changed(
           &mut *display_state,
           &new_drag_ord_opt);
@@ -426,29 +461,62 @@ impl <V,S> GamePresenter<V,S>
     self.layout_play_area_cards(display_state, 0.1);
   }
 
-  /// Handles the positive release of a dragged supply card
-  fn on_supply_card_drag_end(&self, drag_x: f64, drag_y: f64) {
-    info!("Supply card drag end: {}, {}", drag_x, drag_y);
 
-    let mut display_state
-        = self.display_state.write().unwrap();
-    {
-      let drag_state_opt = display_state.card_in_flight_mut();
+  fn on_card_dropped_into_play(&self,
+      display_state: &mut GameDisplayState<V::S>,
+      drag_ord: usize,
+      drag_state: DraggedCardDisplayState<V::S>) {
+    let orig_ord_opt = drag_state.orig_play_area_ord().as_ref().cloned();
+    let ui_card = drag_state.take_card();
 
-      if let Some(drag_state) = drag_state_opt {
-        let left = drag_state.left_orig().clone();
-        let top= drag_state.top_orig().clone();
-        let width = drag_state.width_orig().clone();
-        let height = drag_state.height_orig().clone();
+    display_state.cards_in_play_mut().insert(drag_ord, ui_card);
+  }
 
-        let card  = drag_state.card();
+  fn on_card_dropped_not_in_play(&self,
+      display_state: &mut GameDisplayState<V::S>,
+      drag_state: DraggedCardDisplayState<V::S>) {
 
-        card.set_location_and_size_animated(left, top, width, height, 0.1);
+    if drag_state.card().required_play_card().clone() {
+      let ord = drag_state.orig_play_area_ord().as_ref().cloned();
+      let card = drag_state.take_card();
+      display_state.cards_in_play_mut().insert(ord.unwrap(), card);
+    }
+    else {
+      if let Some(return_rect)
+          = display_state.get_supply_card_rect_by_card(
+              drag_state.card().card()) {
+        drag_state.card().set_rect_animated(&return_rect, 0.1)
       }
     }
 
-    display_state.set_card_in_flight(None);
+  }
 
+  /// Handles the positive release of a dragged supply card
+  fn on_drag_end(&self) {
+
+    let mut display_state
+        = self.display_state.write().unwrap();
+
+    match display_state.card_in_flight_mut().take() {
+      Some(mut drag_state) => {
+        match drag_state.play_area_ord_mut().take() {
+          Some(drag_ord) => {
+            self.on_card_dropped_into_play(
+                &mut *display_state,
+                drag_ord,
+                drag_state);
+          }
+          None => {
+            self.on_card_dropped_not_in_play(
+                &mut *display_state,
+                drag_state);
+          }
+        }
+      },
+      _ => ()
+    };
+
+    self.layout_play_area_cards(&mut *display_state, 0.1);
   }
 
   /// Initialize the display state with the initial game state
@@ -458,56 +526,23 @@ impl <V,S> GamePresenter<V,S>
 
     let mut new_display_state = GameDisplayState::default();
 
-    for card in game_state.cards_in_play() {
-      let copied_self_start = this.clone();
-      let copied_self_move = this.clone();
-      let copied_self_end = this.clone();
-      let copied_card = card.clone();
-      this.create_ui_card(card.clone(),
-          copied_card.is_required_in_play(),
-          Some(create_drag_handler!(
-              on_drag_start(wx, wy, lx, ly) {
-                copied_self_start.on_supply_card_drag_start(
-                    copied_card.clone(), wx, wy, lx, ly);
-              },
-              on_drag_move(wx, wy, _lx, _ly) {
-                copied_self_move.on_drag_move(wx, wy);
-              },
-              on_drag_end(wx, wy, _lx, _ly) {
-                copied_self_end.on_supply_card_drag_end(wx, wy);
-              }
-          )));
-    }
+    *new_display_state.cards_in_play_mut() = game_state
+        .cards_in_play()
+        .iter()
+        .enumerate()
+        .map(|(i, card)| {
+          this.create_ui_card(card,
+          Some(i),
+          card.is_required_in_play())
+        })
+        .collect();
 
-    *new_display_state.cards_in_play_mut()
-        = game_state.setup().required_cards().iter()
+    *new_display_state.supply_cards_mut()
+        = game_state.setup().supply_cards().iter()
             .map(|card| {
-              this.create_ui_card(card.clone(), true, None)
+              this.create_ui_card(card, None, true)
             })
             .collect();
-
-    for card in game_state.setup().supply_cards() {
-      let copied_self_start = this.clone();
-      let copied_self_move = this.clone();
-      let copied_self_end = this.clone();
-      let copied_card = card.clone();
-      let ui_card = this.create_ui_card(
-          card.clone(),
-          false,
-          Some(create_drag_handler!(
-              on_drag_start(wx, wy, lx, ly) {
-                copied_self_start.on_supply_card_drag_start(
-                    copied_card.clone(), wx, wy, lx, ly);
-              },
-              on_drag_move(wx, wy, _lx, _ly) {
-                copied_self_move.on_drag_move(wx, wy);
-              },
-              on_drag_end(wx, wy, _lx, _ly) {
-                copied_self_end.on_supply_card_drag_end(wx, wy);
-              }
-          )));
-      new_display_state.supply_cards_mut().push(ui_card);
-    }
 
     *this.display_state.write()
         .expect("Failed to get write lock on display state")
@@ -527,6 +562,22 @@ impl <V,S> GamePresenter<V,S>
         }))));
 
     let result = Arc::new(self);
+    let result_drag_start = result.clone();
+    let result_drag_move = result.clone();
+    let result_drag_end = result.clone();
+
+    result.add_handler_registration(Box::new(result.view
+        .add_drag_handler(create_drag_handler!(
+              on_drag_start(wx, wy, _lx, _ly) {
+                result_drag_start.on_drag_start(&Point { x: wx, y: wy });
+              },
+              on_drag_move(wx, wy, _lx, _ly) {
+                result_drag_move.on_drag_move(wx, wy);
+              },
+              on_drag_end(_wx, _wy, _lx, _ly) {
+                result_drag_end.on_drag_end();
+              }
+          ))));
 
     result.add_listener_registration(
         result.event_bus.register(FourFoursEvent::Layout, &result));
