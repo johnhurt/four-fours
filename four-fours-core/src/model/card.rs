@@ -39,7 +39,7 @@ define_cards!(
   Divide,
   ParenL,
   ParenR,
-  ZeroPoint,
+  Decimal,
   Power,
   Radical,
   Inverse,
@@ -48,7 +48,7 @@ define_cards!(
 
 impl Card {
   pub fn verify_number(num: i64) -> i64 {
-    if num > 9 || num < 1 {
+    if num > 9 || num < 0 {
       panic!("Number cards can only have a value between 1 and 9 (inclusive)");
     }
     num

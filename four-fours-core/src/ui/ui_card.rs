@@ -46,6 +46,7 @@ impl <T,S> UiCard<S>
     let symbol_texture = match card {
       Card::Number(val, _) => {
         match val {
+          0 => textures.symbols().zero(),
           1 => textures.symbols().one(),
           2 => textures.symbols().two(),
           3 => textures.symbols().three(),
@@ -58,7 +59,7 @@ impl <T,S> UiCard<S>
           _ => panic!("Invalid number {}", val)
         }
       },
-      Card::ZeroPoint => textures.symbols().zero_point(),
+      Card::Decimal => textures.symbols().decimal(),
       Card::Plus => textures.symbols().plus(),
       Card::Minus => textures.symbols().minus(),
       Card::Times => textures.symbols().times(),

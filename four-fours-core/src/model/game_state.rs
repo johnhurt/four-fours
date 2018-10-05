@@ -22,4 +22,5 @@ impl GameState {
   pub fn cards_in_play(&self) -> &Vec<Card> {
     &self.cards_in_play
   }
+
 }

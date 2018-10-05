@@ -27,7 +27,8 @@ define_events!(FourFoursEvent,
     Layout{
       pub width: i64,
       pub height: i64,
-    }
+    },
+    Evaluate{}
 );
 
 

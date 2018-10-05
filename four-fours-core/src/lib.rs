@@ -1,6 +1,9 @@
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate log;
 #[macro_use] extern crate getset;
+#[macro_use] extern crate nom;
+
+extern crate statrs;
 
 extern crate simplelog;
 extern crate itertools;
@@ -19,5 +22,6 @@ mod event;
 mod native;
 mod presenter;
 mod util;
+mod math;
 
 mod lib_gen;

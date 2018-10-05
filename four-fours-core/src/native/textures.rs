@@ -73,7 +73,7 @@ define_texture_atlas!(Card(x_tile_count: 1, y_tile_count: 1) {
 });
 
 define_texture_atlas!(Symbols (x_tile_count: 6, y_tile_count: 6) {
-  zero_point(left: 0, top: 0, width: 1, height: 1),
+  zero(left: 0, top: 0, width: 1, height: 1),
   one(left: 1, top: 0, width: 1, height: 1),
   two(left: 2, top: 0, width: 1, height: 1),
   three(left: 3, top: 0, width: 1, height: 1),
@@ -92,7 +92,8 @@ define_texture_atlas!(Symbols (x_tile_count: 6, y_tile_count: 6) {
   paren_l(left: 4, top: 2, width: 1, height: 1),
   paren_r(left: 5, top: 2, width: 1, height: 1),
   inverse(left: 0, top: 3, width: 1, height: 1),
-  factorial(left: 1, top: 3, width: 1, height: 1)
+  factorial(left: 1, top: 3, width: 1, height: 1),
+  decimal(left: 2, top: 3, width: 1, height: 1)
 });
 
 pub struct Textures<T: Texture> {

@@ -1,0 +1,28 @@
+[package]
+name = "rex"
+version = "0.1.0"
+authors = [
+    "Christopher Breeden <github@u.breeden.cc>",
+    "Sebastian Köln <sebk@rynx.org>"
+]
+
+[dependencies]
+stix2 = { path = "fonts/stix2" }
+font_types = {path = "fonts/types" }
+static_map = "0.2.0-beta"
+static_map_macros = "0.2.0-beta"
+serde_derive = "1.0"
+serde = "1.0"
+
+[dev-dependencies]
+serde_yaml = "0.7"
+bincode = "0.8"
+env_logger = "*"
+
+[dependencies.log]
+version="0.3"
+features = [ "release_max_level_warn" ]
+
+[lib]
+name = "rex"
+path = "src/lib.rs"

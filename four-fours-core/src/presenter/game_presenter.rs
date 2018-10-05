@@ -5,12 +5,31 @@ use std::sync::{
   RwLock
 };
 
+use std::sync::atomic::{
+  AtomicIsize
+};
+
+use std::{
+  thread
+};
+
+use std::time::{
+  Instant,
+  Duration
+};
+
 use event::{
   EventBus,
   EventListener,
   ListenerRegistration,
   FourFoursEvent,
-  Layout
+  Layout,
+  Evaluate
+};
+
+use math::{
+  MathEngine,
+  MathResponse
 };
 
 use model::{
@@ -39,6 +58,10 @@ use ui::{
   DragHandler
 };
 
+lazy_static!{
+  static ref MIN_EVAL_SEPARATION : Duration = Duration::from_millis(500);
+}
+
 const BOUNDARY_FRACTION : f64 = 0.04;
 const SPACING_FRACTION : f64 = 0.04;
 const MAX_CARD_WIDTH_FRAC : f64 = 0.2;
@@ -46,6 +69,8 @@ const MAX_CARD_HEIGHT_FRAC : f64 = 0.35;
 
 const MIN_SUPPLY_CARD_WIDTH_PTS : f64 = 45.0;
 const MIN_PLAY_CARD_WIDTH_PTS : f64 = 35.0;
+
+const TEX_AREA_HEIGHT_FRAC : f64 = 0.3;
 
 pub struct GamePresenter<V,S>
     where
@@ -57,8 +82,42 @@ pub struct GamePresenter<V,S>
   listener_registrations: Mutex<Vec<ListenerRegistration>>,
   handler_registrations: Mutex<Vec<Box<HandlerRegistration>>>,
 
-  game_state: RwLock<GameState>,
-  display_state: RwLock<GameDisplayState<V::S>>
+  display_state: RwLock<GameDisplayState<V::S>>,
+  math_engine: MathEngine,
+  goal: AtomicIsize,
+
+  last_eval: Mutex<Option<String>>,
+  eval_queue: Mutex<Option<String>>,
+  next_eval_time: Mutex<Option<Instant>>,
+  last_eval_time: Mutex<Instant>
+}
+
+impl <V,S> EventListener<Evaluate> for GamePresenter<V,S>
+    where
+        S: SystemView,
+        V: GameView<T = S::T> {
+  fn on_event(&self, _: &Evaluate) {
+    let mut to_eval_opt : Option<String> = None;
+
+    {
+      to_eval_opt
+          = self.eval_queue.lock().expect("Failed to lock eval queue").take();
+    }
+
+    info!("Handling evaluate event {:?}", to_eval_opt);
+    match to_eval_opt {
+      Some(to_eval) => {
+        match (self.math_engine.evaluate(&to_eval)) {
+          Ok(resp) => {
+            info!("{} = {}", resp.tex, resp.value);
+          },
+          _ => { info!("Failed to parse as math"); }
+        }
+      }
+      _ => ()
+    }
+
+  }
 }
 
 impl <V,S> EventListener<Layout> for GamePresenter<V,S>
@@ -67,8 +126,6 @@ impl <V,S> EventListener<Layout> for GamePresenter<V,S>
         V: GameView<T = S::T> {
   fn on_event(&self, event: &Layout) {
     info!("Game view resized to : {}, {}", event.width, event.height);
-    let game_state = self.game_state.read()
-        .expect("Failed to get read lock on game_state");
 
     let mut display_state = self.display_state.write()
         .expect("Failed to lock display state for reading");
@@ -90,7 +147,7 @@ impl <V,S> EventListener<Layout> for GamePresenter<V,S>
     let border_thickness = width * BOUNDARY_FRACTION;
     let playing_area_width = width - 2.0 * border_thickness;
 
-    let supply_card_count = game_state.setup().supply_cards().len() as f64;
+    let supply_card_count = display_state.supply_cards().len() as f64;
 
     let supply_card_width = MIN_SUPPLY_CARD_WIDTH_PTS.max(max_card_width.min(
           playing_area_width / ( supply_card_count
@@ -141,6 +198,27 @@ impl <V,S> EventListener<Layout> for GamePresenter<V,S>
       supply_rect.size.width = supply_width;
       supply_rect.size.height = supply_height;
     }
+    {
+      let mut game_area_rect = Rect::default();
+      game_area_rect.top_left.x = border_thickness;
+      game_area_rect.top_left.y = border_thickness;
+      game_area_rect.size.width = width - border_thickness * 2.;
+      game_area_rect.size.height
+          = first_supply_card_top - border_thickness * 2.;
+      display_state.set_game_area_rect(game_area_rect.clone());
+
+      let mut card_area_rect = display_state.game_area_rect().clone();
+      card_area_rect.top_left.y = game_area_rect.top_left.y + border_thickness
+          + game_area_rect.size.height * TEX_AREA_HEIGHT_FRAC;
+      card_area_rect.size.height = (1. - TEX_AREA_HEIGHT_FRAC)
+          * (game_area_rect.size.height - border_thickness);
+      display_state.set_card_area_rect(card_area_rect);
+
+      let mut tex_area_rect = display_state.game_area_rect().clone();
+      tex_area_rect.size.height = TEX_AREA_HEIGHT_FRAC
+          * (game_area_rect.size.height - border_thickness);
+      display_state.set_tex_area_rect(tex_area_rect);
+    }
 
     display_state
         .supply_cards()
@@ -173,13 +251,12 @@ impl <V,S> GamePresenter<V,S>
       _ => None
     };
 
-    let width = display_state.size().width;
     let height = display_state.size().height;
     let card_aspect_ratio = display_state.card_aspect_ratio().clone();
-    let border_thickness = display_state.border_thickness().clone();
-    let supply_top = display_state.supply_rect().top_left.y;
+    let card_area_rect = display_state.card_area_rect().clone();
+    let card_area_center = card_area_rect.center();
 
-    let available_play_area_width = width - 2.0 * border_thickness;
+    let available_play_area_width = card_area_rect.size.width;
     let max_card_height = height * MAX_CARD_HEIGHT_FRAC;
     let max_card_width = (card_aspect_ratio * max_card_height).min(
         available_play_area_width * MAX_CARD_WIDTH_FRAC);
@@ -199,15 +276,6 @@ impl <V,S> GamePresenter<V,S>
     let play_cards_per_row
         = ((available_play_area_width + min_play_card_spacing)
             / (play_card_width + min_play_card_spacing) + 0.1).floor();
-
-    // info!("slots {}, avail {}, min_space {}, width {}, natural_width {}, min_width {}, max_width {}",
-    //     play_card_slots,
-    //     available_play_area_width,
-    //     min_play_card_spacing,
-    //     play_card_width,
-    //     natural_card_width,
-    //     MIN_PLAY_CARD_WIDTH_PTS,
-    //     max_card_width);
 
     let play_area_row_count = (play_card_slots / play_cards_per_row).ceil();
 
@@ -230,10 +298,8 @@ impl <V,S> GamePresenter<V,S>
         + (play_area_row_count - 1.0) * play_card_spacing;
 
     let play_card_height = play_card_width / card_aspect_ratio;
-    let first_play_card_top
-        = (supply_top - 2.0 * border_thickness) / 2.0
-            - play_area_height / 2.0 + border_thickness;
-    let first_play_card_left = width / 2.0 - play_area_width / 2.0;
+    let first_play_card_top = card_area_center.y - play_area_height / 2.0;
+    let first_play_card_left = card_area_center.x - play_area_width / 2.0;
 
     display_state.play_card_size_mut().width = play_card_width;
     display_state.play_card_size_mut().height = play_card_height;
@@ -461,17 +527,29 @@ impl <V,S> GamePresenter<V,S>
     self.layout_play_area_cards(display_state, 0.1);
   }
 
+  /// Enqueue the string representation of the given game state in the
+  /// evaluation queue and post an eval event
+  fn trigger_evaluation(&self, display_state: &GameDisplayState<V::S>) {
+    {
+      let mut q_lock = self.eval_queue.lock()
+          .expect("Failed to lock event queue");
 
+      *q_lock = Some(display_state.to_string());
+    }
+
+    self.event_bus.post(Evaluate{});
+  }
+
+  /// Called when a card is released into play
   fn on_card_dropped_into_play(&self,
       display_state: &mut GameDisplayState<V::S>,
       drag_ord: usize,
       drag_state: DraggedCardDisplayState<V::S>) {
-    let orig_ord_opt = drag_state.orig_play_area_ord().as_ref().cloned();
     let ui_card = drag_state.take_card();
-
     display_state.cards_in_play_mut().insert(drag_ord, ui_card);
   }
 
+  /// Called when a card is released but not released into play
   fn on_card_dropped_not_in_play(&self,
       display_state: &mut GameDisplayState<V::S>,
       drag_state: DraggedCardDisplayState<V::S>) {
@@ -488,7 +566,6 @@ impl <V,S> GamePresenter<V,S>
         drag_state.card().set_rect_animated(&return_rect, 0.1)
       }
     }
-
   }
 
   /// Handles the positive release of a dragged supply card
@@ -512,10 +589,12 @@ impl <V,S> GamePresenter<V,S>
                 drag_state);
           }
         }
+
       },
       _ => ()
     };
 
+    self.trigger_evaluation(&display_state);
     self.layout_play_area_cards(&mut *display_state, 0.1);
   }
 
@@ -547,10 +626,6 @@ impl <V,S> GamePresenter<V,S>
     *this.display_state.write()
         .expect("Failed to get write lock on display state")
             = new_display_state;
-
-    *this.game_state.write()
-        .expect("Failed to get write lock on game state")
-            = game_state;
   }
 
   fn bind(self) -> Arc<GamePresenter<V,S>> {
@@ -580,8 +655,16 @@ impl <V,S> GamePresenter<V,S>
           ))));
 
     result.add_listener_registration(
-        result.event_bus.register(FourFoursEvent::Layout, &result));
+        result.event_bus.register_disambiguous(
+            FourFoursEvent::Layout,
+            &result,
+            Some(Layout{width: 0, height: 0})));
 
+    result.add_listener_registration(
+        result.event_bus.register_disambiguous(
+            FourFoursEvent::Evaluate,
+            &result,
+            Some(Evaluate{})));
     result
   }
 
@@ -600,7 +683,14 @@ impl <V,S> GamePresenter<V,S>
       handler_registrations: Mutex::new(Vec::new()),
 
       display_state: RwLock::new(GameDisplayState::default()),
-      game_state: RwLock::new(GameState::default())
+      math_engine: MathEngine{},
+
+      goal: AtomicIsize::new(0),
+
+      last_eval: Mutex::new(None),
+      eval_queue: Mutex::new(None),
+      last_eval_time: Mutex::new(Instant::now()),
+      next_eval_time: Mutex::new(None)
     };
 
     let game_state

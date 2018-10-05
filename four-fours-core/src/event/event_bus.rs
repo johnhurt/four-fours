@@ -55,13 +55,23 @@ impl EventBus {
     })
   }
 
-  pub fn register<E, H>(
-      &self,
+  pub fn register<E,H>(&self,
       event_type: FourFoursEvent,
       handler: &Arc<H>) -> ListenerRegistration
-      where E : Send + Clone + Into<FourFoursEvent> + 'static,
-      H : EventListener<E>
-      {
+          where
+              E : Send + Clone + Into<FourFoursEvent> + 'static,
+              H : EventListener<E> {
+    self.register_disambiguous(event_type, handler, None)
+  }
+
+  pub fn register_disambiguous<E, H>(
+      &self,
+      event_type: FourFoursEvent,
+      handler: &Arc<H>,
+      _: Option<E>) -> ListenerRegistration
+          where
+              E : Send + Clone + Into<FourFoursEvent> + 'static,
+              H : EventListener<E> {
     let weak_handler = Arc::downgrade(handler);
 
     let mut listener_id = 0u64;

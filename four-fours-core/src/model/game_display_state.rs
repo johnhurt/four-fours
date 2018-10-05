@@ -54,6 +54,10 @@ pub struct GameDisplayState<S> where S: Sprite {
 
   #[get = "pub"] #[set = "pub"] play_area_row_count: f64,
   #[get = "pub"] #[get_mut = "pub"] play_area_rect: Rect,
+
+  #[get = "pub"] #[set = "pub"] game_area_rect: Rect,
+  #[get = "pub"] #[set = "pub"] card_area_rect: Rect,
+  #[get = "pub"] #[set = "pub"] tex_area_rect: Rect
 }
 
 impl <S> Default for GameDisplayState<S> where S: Sprite {
@@ -82,8 +86,13 @@ impl <S> Default for GameDisplayState<S> where S: Sprite {
       supply_row_count: 0.,
       supply_rect: Rect::default(),
 
+
       play_area_row_count: 0.,
       play_area_rect: Rect::default(),
+
+      game_area_rect: Rect::default(),
+      card_area_rect: Rect::default(),
+      tex_area_rect: Rect::default()
     }
   }
 }
@@ -107,7 +116,7 @@ impl <S,T> GameDisplayState<S>
     let x = &point.x;
     let y = &point.y;
 
-    let threshold_dist = if (current_bind_point.is_some()) {
+    let threshold_dist = if current_bind_point.is_some() {
         self.play_card_size.height
             * MAX_DIST_FROM_PLAY_AREA_FRAC_OF_CARD_HEIGHT
       }
@@ -319,5 +328,66 @@ impl <S,T> GameDisplayState<S>
         .or(self.get_play_card_at(point))
 
   }
+
+  pub fn to_string(&self) -> String {
+    cards_to_string(
+        &self.cards_in_play.iter().map(UiCard::card).collect())
+  }
+
+}
+
+fn cards_to_string(cards: &Vec<&Card>) -> String {
+  let mut result = String::with_capacity(cards.len());
+
+  for ref card in cards {
+    match card {
+      Card::Number(num, _) => {
+        result.push((((*num as u8) + ('0' as u8)) as char));
+      },
+      Card::Plus => result.push('+'),
+      Card::Minus => result.push('-'),
+      Card::Times => result.push('*'),
+      Card::Divide => result.push('/'),
+      Card::ParenL => result.push('('),
+      Card::ParenR => result.push(')'),
+      Card::Power => result.push('^'),
+      Card::Radical => result.push('√'),
+      Card::Inverse => result.push_str("^-1"),
+      Card::Factorial => result.push('!'),
+      Card::Decimal => result.push('.')
+    };
+  }
+
+  result
+}
+
+#[test]
+fn test_to_str() {
+
+  let mut cards = vec![
+    required_number_card!(4),
+    required_number_card!(4),
+    required_number_card!(4),
+    required_number_card!(4)
+  ];
+
+  assert_eq!(cards_to_string(&cards.iter().collect()), "4444");
+
+  cards = vec![
+    required_number_card!(4),
+    Card::Divide,
+    required_number_card!(4),
+    Card::Plus,
+    required_number_card!(4),
+    Card::Times,
+    Card::ParenL,
+    Card::Radical,
+    Card::Decimal,
+    required_number_card!(4),
+    Card::ParenR,
+    Card::Inverse
+  ];
+
+  assert_eq!(cards_to_string(&cards.iter().collect()), "4/4+4*(√.4)^-1");
 
 }

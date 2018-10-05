@@ -2,7 +2,7 @@
 name = "four-fours-core"
 version = "0.1.0"
 authors = ["Kevin Guthrie <kevin.guthrie@gmail.com>"]
-build = "build/build.rs"
+#build = "build/build.rs"
 
 [dependencies]
 parallel-event-emitter = "0.2.4"
@@ -16,6 +16,9 @@ simplelog = "0.5.2"
 itertools = "0.7.8"
 getset = "0.0.6"
 derive_builder = "0.5.1"
+nom = "4.0.0"
+rex = { path = "../external-crates/rex" }
+statrs = "0.9.0"
 
 [build-dependencies]
 cbindgen = "0.6.0"
