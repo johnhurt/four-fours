@@ -1,5 +1,20 @@
 
+use std::fmt;
+use std::fmt::{Debug, Display, Formatter};
+use std::str::FromStr;
+
+use cached::SizedCache;
 use statrs::function::gamma::gamma;
+
+use num::{
+  Zero,
+  One,
+  ToPrimitive
+};
+
+use num::{
+  BigUint
+};
 
 use math::{
   MathResponse,
@@ -11,17 +26,17 @@ use math::syntax::{
   Expr
 };
 
+use math::Number;
+
 pub struct MathEngine {
 }
-
-struct Rational(i64,i64);
 
 impl MathEngine {
 
   pub fn evaluate(&self, input: &str) -> MathResult {
 
     match parse(input) {
-      Ok(expr) => {
+      Ok((expr,eval)) => {
         let (tex, val) = self.evaluate_node(&expr);
 
         Ok(MathResponse{ tex: tex, value: val })
@@ -123,4 +138,7 @@ impl MathEngine {
 
     result.parse().unwrap()
   }
+
+
 }
+

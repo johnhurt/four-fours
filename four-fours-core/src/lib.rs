@@ -2,8 +2,10 @@
 #[macro_use] extern crate log;
 #[macro_use] extern crate getset;
 #[macro_use] extern crate nom;
+#[macro_use] extern crate cached;
 
 extern crate statrs;
+extern crate num;
 
 extern crate simplelog;
 extern crate itertools;
