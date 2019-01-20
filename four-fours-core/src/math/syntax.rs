@@ -382,7 +382,8 @@ impl EvalProd {
           self.terms.clear();
         }
         else {
-          self.number_collector = self.number_collector.multiply(&val);
+          self.number_collector
+              = self.number_collector.multiply(&val);
         }
       },
       Err(term) => {
@@ -457,10 +458,10 @@ impl EvalExp {
   }
 
   pub fn sqrt(of: EvalNode) -> EvalExp {
-    let mut power = EvalExp::new(EvalNode::Num(Number::two()), None);
-    power.reciprocate();
-    EvalExp::new(of, Some(EvalNode::from_statement(
-        Evaluable::new_from_exp(power))))
+    EvalExp::new(of, Some(EvalNode::Num(Number::new_rational(
+        false,
+        One::one(),
+        BigUint::from(2usize)))))
   }
 
   /// try to get this exp as a number or else just return the same
@@ -582,14 +583,17 @@ fn pow(base: &Number, power: &Number) -> EvalExp {
             _ => {
               match int_pow(*base_neg, base_val, *pow_neg, pow_num) {
                 Ok((neg, val, recip)) => {
-                  if recip {
-                    EvalExp::from_number(
-                      Number::new_rational(neg, One::one(), val))
+                  let base = if recip {
+                    Number::new_rational(neg, One::one(), val)
                   }
                   else {
-                    EvalExp::from_number(
-                        Number::new_integer(neg, val))
-                  }
+                    Number::new_integer(neg, val)
+                  };
+
+                  EvalExp::raw(EvalNode::Num(base),
+                      EvalNode::Num(Number::new_rational(false,
+                          One::one(),
+                          pow_denom.clone())))
                 },
                 Err(neg) => {
                   let result_base = if *pow_neg {
@@ -1285,6 +1289,7 @@ fn fold_mult_div_expr(init: (Expr,EvalExp),
       Oper::Div => {
         let new_expr = Expr::Div(Box::new(expr_acc), Box::new(expr));
         eval.reciprocate();
+        eval_acc.push(eval);
         (new_expr, eval_acc)
       },
       _ => panic!("Only Addition and Subtraction operations allowed")
@@ -1542,20 +1547,28 @@ mod tests {
 
     #[test]
     fn test_parse_expression_with_parantheses() {
-        let parsed = parse("(1 + 2) * 4.5").unwrap().0;
+        let parsed = parse("(1 + 2) * 4.5").unwrap();
         let expected = Mul(
             Box::new(Paren(Box::new(Add(num("1"), num("2"))))),
             num("4.5"),
         );
-        println!("parsed: {}", parsed);
 
-        assert_eq!(expected, parsed);
+        assert_eq!(parsed.0, expected);
+        assert_eq!(parsed.1, Number::new_rational(
+            false,
+            BigUint::from(27usize),
+            BigUint::from(2usize)))
     }
 
     #[test]
     fn test_parse_division_statement() {
-        let parsed = parse("1 / 2").unwrap().0;
-        assert_eq!(parsed, Div(num("1"), num("2")));
+        let parsed = parse("1 / 2").unwrap();
+        assert_eq!(parsed.0, Div(num("1"), num("2")));
+        assert_eq!(parsed.1, Number::new_rational(
+            false,
+            BigUint::from(1usize),
+            BigUint::from(2usize)))
+
     }
 
     #[test]
@@ -1566,18 +1579,19 @@ mod tests {
 
     #[test]
     fn test_parse_exp_statement_2() {
-        let parsed = parse("1 ^ 2 ^ 3").unwrap().0;
-        assert_eq!(parsed,
+        let parsed = parse("1 ^ 2 ^ 3").unwrap();
+        assert_eq!(parsed.0,
             Exp(num("1"),
                 Box::new(
                     Exp(num("2"),
                         num("3")))));
+        assert_eq!(parsed.1, Number::one());
     }
 
     #[test]
     fn test_parse_exp_statement_3() {
-        let parsed = parse("1 ^ 2 ^ 3 ^ 4 ^ 5").unwrap().0;
-        assert_eq!(parsed,
+        let parsed = parse("1 ^ 2 ^ 3 ^ 4 ^ 5").unwrap();
+        assert_eq!(parsed.0,
             Exp(num("1"),
                 Box::new(
                     Exp(num("2"),
@@ -1586,12 +1600,14 @@ mod tests {
                                 Box::new(
                                     Exp(num("4"),
                                         num("5")))))))));
+        assert_eq!(parsed.1, Number::one());
     }
 
     #[test]
     fn test_simple_sqrt() {
-        let parsed = parse("√ 2").unwrap().0;
-        assert_eq!(parsed, Radical(num("2")));
+        let parsed = parse("√ 2").unwrap();
+        assert_eq!(parsed.0, Radical(num("2")));
+        assert_eq!(parsed.1, Number::new_rounded(2.0_f64.sqrt()));
     }
 
     #[test]
