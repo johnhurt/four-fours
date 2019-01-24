@@ -1,21 +1,4 @@
 
-use std::fmt;
-use std::fmt::{Debug, Display, Formatter};
-use std::str::FromStr;
-
-use cached::SizedCache;
-use statrs::function::gamma::gamma;
-
-use num::{
-  Zero,
-  One,
-  ToPrimitive
-};
-
-use num::{
-  BigUint
-};
-
 use math::{
   MathResponse,
   MathResult
@@ -115,7 +98,7 @@ impl MathEngine {
           0. / 0. // f64::NAN doesn't seem to exist?
         }
         else {
-          gamma(inner_val)
+          inner_val
         };
 
         let tex = format!("{{ {} }}!", inner_tex);

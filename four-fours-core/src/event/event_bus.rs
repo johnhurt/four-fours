@@ -42,9 +42,12 @@ impl EventBus {
 
       pool.spawn(move || {
         loop {
-          if let Some(future) = copied_source.recv() {
-            let _ = future.wait();
-          }
+          match copied_source.recv() {
+            Ok(future) => {
+              let _ = future.wait();
+            },
+            Err(e) => warn!("Receive from channel failed: {:?}", e)
+          };
         }
       })
     }

@@ -337,7 +337,7 @@ impl Number {
       }
     }
 
-    if (denom.is_zero()) {
+    if denom.is_zero() {
       return Number::Infinity(negative);
     }
 
@@ -809,6 +809,26 @@ impl Number {
     }
   }
 
+  /// Get the f64 that best matches this number
+  pub fn to_f64(&self) -> f64 {
+    match self {
+      Number::Integer(neg, val) => {
+        ( if *neg { -1.0 } else { 1.0 } )
+            * val.to_f64().unwrap_or(std::f64::INFINITY)
+      },
+      Number::Rational(neg, num, denom) => {
+        ( if *neg { -1.0 } else { 1.0 } )
+            * num.to_f64().unwrap_or(std::f64::INFINITY)
+            / denom.to_f64().unwrap_or(std::f64::INFINITY)
+      },
+      Number::Rounded(val) => *val,
+      Number::Infinity(neg) | Number::ReallyBig(neg) => {
+        std::f64::INFINITY * if *neg { -1. } else { 1. }
+      },
+      Number::ReallySmall(_) => 0.0,
+      _ => std::f64::NAN
+    }
+  }
 }
 
 
@@ -832,6 +852,7 @@ fn multiply(l_neg: bool, l_val: &BigUint, r_neg: bool, r_val: &BigUint)
     -> (bool, BigUint) {
   (l_neg != r_neg, r_val * l_val)
 }
+
 
 
 #[test]
