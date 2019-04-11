@@ -60,7 +60,7 @@ cached_key! {
 }
 
 
-#[derive(PartialEq,Clone)]
+#[derive(PartialEq,PartialOrd,Clone)]
 pub enum Number {
   Integer(bool,BigUint),
   Rational(bool,BigUint,BigUint),

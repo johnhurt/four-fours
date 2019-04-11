@@ -16,6 +16,7 @@ use math::{
   Number,
   EvalExp,
   EvalProd,
+  EvalProdTerm,
   Evaluable,
   EvalNode
 };
@@ -159,8 +160,8 @@ named!(possible_factorials_or_radicals< CompleteStr, (Expr,EvalNode) >,
   do_parse!(
     radicals: many0!(ws!(tag!("√"))) >>
     fac: factor >>
-    excamations: many0!(ws!(tag!("!"))) >>
-    (wrap_radicals_and_factorials(radicals, fac, excamations))
+    exclamations: many0!(ws!(tag!("!"))) >>
+    (wrap_radicals_and_factorials(radicals, fac, exclamations))
   )
 );
 
@@ -227,8 +228,8 @@ fn fold_plus_minus_expr(init: (Expr,EvalProd),
       },
       Oper::Sub => {
         let new_expr = Expr::Sub(Box::new(expr_acc), Box::new(expr));
-        prod_term.push(EvalExp::new(
-            EvalNode::Num(Number::negative_one()), None));
+        prod_term.push_exp(EvalExp::new_just_base(
+            EvalNode::Num(Number::negative_one())));
         eval_acc.push(prod_term);
         (new_expr, eval_acc)
       },
@@ -237,12 +238,12 @@ fn fold_plus_minus_expr(init: (Expr,EvalProd),
   })
 }
 
-fn fold_mult_div_expr(init: (Expr,EvalExp),
-    remainder: Vec<(Oper,(Expr,EvalExp))>) -> (Expr, EvalProd) {
+fn fold_mult_div_expr(init: (Expr,EvalProdTerm),
+    remainder: Vec<(Oper,(Expr,EvalProdTerm))>) -> (Expr, EvalProd) {
 
-  let (init_expr, init_exp) = init;
+  let (init_expr, init_prod_term) = init;
   let mut init_prod = EvalProd::new();
-  init_prod.push(init_exp);
+  init_prod.push(init_prod_term);
   let mut init = (init_expr, init_prod);
 
   remainder.into_iter().fold(init, |acc, tuple| {
@@ -268,18 +269,18 @@ fn fold_mult_div_expr(init: (Expr,EvalExp),
 
 fn reverse_fold_exponents(initial: (Expr, EvalNode),
     mut remainder: Vec<(Expr,EvalNode)>)
-        -> (Expr, EvalExp) {
+        -> (Expr, EvalProdTerm) {
 
   remainder.insert(0, initial);
   let (init_exp, init_node) = remainder.pop().unwrap();
 
-  let initial = (init_exp, EvalExp::new(init_node, None));
+  let initial = (init_exp, EvalProdTerm::Exp(EvalExp::new_just_base(init_node)));
 
   remainder.into_iter().rev().fold(initial, |acc, (expr, node)| {
     let (expr_acc, eval_acc) = acc;
     let new_expr = Exp(Box::new(expr), Box::new(expr_acc));
-    let new_eval = EvalExp::new(node,
-        Some(EvalNode::from_statement(Evaluable::new_from_exp(eval_acc))));
+    let new_eval = EvalProdTerm::Exp(EvalExp::new(node,
+        EvalNode::from_statement(Evaluable::new_from_prod_tem(eval_acc))));
     (new_expr, new_eval)
   })
 }
@@ -298,13 +299,13 @@ fn wrap_radicals_and_factorials(
 
   for _ in 0..factorials.len() {
     result_expr = Factorial(Box::new(result_expr));
-    result_node = EvalNode::new_factorial(result_node);
+    result_node = EvalNode::from_statement(Evaluable::new_from_prod_tem(EvalProdTerm::new_factorial(result_node)));
   }
 
   (result_expr, result_node)
 }
 
-named!(exp_term<CompleteStr, (Expr,EvalExp)>, do_parse!(
+named!(exp_term<CompleteStr, (Expr,EvalProdTerm)>, do_parse!(
   initial: possible_factorials_or_radicals >>
   remainder: many0!(
     do_parse!(

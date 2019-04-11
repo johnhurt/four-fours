@@ -13,35 +13,6 @@ use num::{
 
 use statrs::function::gamma::gamma;
 
-#[derive(Clone)]
-pub enum EvalNode {
-  Num(Number),
-  Statement(Evaluable)
-}
-
-#[derive(Clone)]
-pub struct EvalExp {
-  base: EvalNode,
-  power: EvalNode
-}
-
-#[derive(Clone)]
-pub struct EvalProd {
-  exp_terms: Vec<EvalExp>,
-  eval_terms: Vec<EvalNode>,
-  number_collector: Number
-}
-
-pub enum EvalFunc {
-  Factorial(Box<EvalNode>)
-}
-
-#[derive(Clone)]
-pub struct Evaluable {
-  terms: Vec<EvalProd>,
-  number_collector: Number
-}
-
 impl Debug for EvalFunc {
   fn fmt(&self, format: &mut Formatter) -> fmt::Result {
     match *self {
@@ -55,6 +26,15 @@ impl Debug for EvalNode {
     match *self {
       EvalNode::Num(ref val) => Debug::fmt(val, format),
       EvalNode::Statement(ref stmt) => Debug::fmt(stmt, format)
+    }
+  }
+}
+
+impl Debug for EvalProdTerm {
+  fn fmt(&self, format: &mut Formatter) -> fmt::Result {
+    match *self {
+      EvalProdTerm::Exp(ref val) => Debug::fmt(val, format),
+      EvalProdTerm::Func(ref stmt) => Display::fmt(stmt, format)
     }
   }
 }
@@ -87,23 +67,12 @@ impl Debug for EvalProd {
       count += 1;
     }
 
-    for term in &self.exp_terms {
+    for term in &self.terms {
       if count > 0 {
         write!(format, "*")?;
       }
 
       Debug::fmt(term, format)?;
-
-      count += 1;
-    }
-
-    for term in &self.eval_terms {
-      if count > 0 {
-        write!(format, "*")?;
-      }
-      write!(format, "(");
-      Debug::fmt(term, format);
-      write!(format, ")");
 
       count += 1;
     }
@@ -135,12 +104,28 @@ impl Debug for Evaluable {
   }
 }
 
+impl Display for EvalFunc {
+  fn fmt(&self, format: &mut Formatter) -> fmt::Result {
+    match *self {
+      EvalFunc::Factorial(ref inner) => write!(format, "({:?})!", *inner)
+    }
+  }
+}
+
 impl Display for EvalNode {
   fn fmt(&self, format: &mut Formatter) -> fmt::Result {
     match *self {
       EvalNode::Num(ref val) => Debug::fmt(val, format),
-      EvalNode::Statement(ref stmt) => Display::fmt(stmt, format),
-      EvalNode::Factorial(ref node) => write!(format, "({:?})!", *node)
+      EvalNode::Statement(ref stmt) => Display::fmt(stmt, format)
+    }
+  }
+}
+
+impl Display for EvalProdTerm {
+  fn fmt(&self, format: &mut Formatter) -> fmt::Result {
+    match *self {
+      EvalProdTerm::Exp(ref val) => Debug::fmt(val, format),
+      EvalProdTerm::Func(ref stmt) => Display::fmt(stmt, format)
     }
   }
 }
@@ -173,23 +158,12 @@ impl Display for EvalProd {
       count += 1;
     }
 
-    for term in &self.exp_terms {
+    for term in &self.terms {
       if count > 0 {
         write!(format, "*")?;
       }
 
       Debug::fmt(term, format);
-
-      count += 1;
-    }
-
-    for term in &self.eval_terms {
-      if count > 0 {
-        write!(format, "*")?;
-      }
-      write!(format, "(");
-      Debug::fmt(term, format);
-      write!(format, ")");
 
       count += 1;
     }
@@ -221,18 +195,17 @@ impl Display for Evaluable {
   }
 }
 
-impl EvalNode {
+impl EvalFunc {
 
-  pub fn new_factorial(node: EvalNode) -> EvalNode {
-    match node {
-      EvalNode::Num(val) => {
-        EvalNode::Num(val.factorial())
-      },
-      _ => {
-        EvalNode::Factorial(Box::new(node))
-      }
+  pub fn to_f64(&self) -> f64 {
+    match self {
+      EvalFunc::Factorial(inner) => gamma(inner.to_f64())
     }
   }
+
+}
+
+impl EvalNode {
 
   /// Create a new node from the the given evaluable statement
   pub fn from_statement(stmt: Evaluable) -> EvalNode {
@@ -270,12 +243,6 @@ impl EvalNode {
       EvalNode::Statement(ref mut stmt) => {
         stmt.negate();
         None
-      },
-      EvalNode::Factorial(node) => {
-        let mut stmt = Evaluable::new_from_exp(
-            EvalExp::new((**node).clone(), None));
-        stmt.negate();
-        Some(EvalNode::Statement(stmt))
       }
     };
 
@@ -294,14 +261,39 @@ impl EvalNode {
           | (EvalNode::Statement(stmt), EvalNode::Num(val)) => {
         EvalNode::Statement(stmt.scale(val))
       },
-      (EvalNode::Num(val), EvalNode::Factorial(inner))
-          | (EvalNode::Factorial(inner), EvalNode::Num(val)) => {
-        let mut prod = EvalProd::new_from_exp(EvalExp::from_number(val))
-        prod.
-        EvalNode::Statement(stmt.scale(val))
-      },
+      (EvalNode::Statement(left_stmt), EvalNode::Statement(right_stmt)) => {
+        let mut result = Evaluable::new();
 
+        result.number_collector = left_stmt.number_collector.multiply(
+            &right_stmt.number_collector);
 
+        for term in &right_stmt.terms {
+          let mut prod_term = term.clone();
+          prod_term.number_collector
+              = prod_term.number_collector.multiply(
+                  &left_stmt.number_collector);
+          result.push(prod_term);
+        }
+
+        for term in &left_stmt.terms {
+          let mut prod_term = term.clone();
+          prod_term.number_collector
+              = prod_term.number_collector.multiply(
+                  &right_stmt.number_collector);
+          result.push(prod_term);
+        }
+
+        for left_term in left_stmt.terms {
+          for right_term in &right_stmt.terms {
+            let mut term = left_term.clone();
+            for right_exp_term in &right_term.terms {
+              term.push(right_exp_term.clone());
+            }
+          }
+        }
+
+        EvalNode::from_statement(result)
+      }
     }
   }
 
@@ -312,8 +304,7 @@ impl EvalNode {
       },
       EvalNode::Num(val) => {
         val.to_f64()
-      },
-      EvalNode::Factorial(inner) => gamma(inner.to_f64())
+      }
     }
   }
 
@@ -339,7 +330,17 @@ impl Evaluable {
     let mut result = Evaluable::new();
     let mut prod = EvalProd::new();
 
-    prod.push(exp);
+    prod.push_exp(exp);
+    result.push(prod);
+
+    result
+  }
+
+  pub fn new_from_prod_tem(prod_term: EvalProdTerm) -> Evaluable {
+    let mut result = Evaluable::new();
+    let mut prod = EvalProd::new();
+
+    prod.push(prod_term);
     result.push(prod);
 
     result
@@ -381,8 +382,8 @@ impl Evaluable {
   pub fn scale(mut self, by: Number) -> Evaluable {
     self.number_collector = self.number_collector.multiply(&by);
     self.terms = self.terms.into_iter()
-        .map(|term| {
-          term.push(EvalExp::from_number(by.clone()));
+        .map(|mut term| {
+          term.push_exp(EvalExp::from_number(by.clone()));
           term
         })
         .collect();
@@ -421,12 +422,56 @@ impl Evaluable {
   }
 }
 
+impl EvalProdTerm {
+
+  /// Get this eval prod term as the closest f64
+  pub fn to_f64(&self) -> f64 {
+    match self {
+      EvalProdTerm::Exp(exp) => exp.to_f64(),
+      EvalProdTerm::Func(func) => func.to_f64()
+    }
+  }
+
+  pub fn new_factorial(node: EvalNode) -> EvalProdTerm {
+    let result = match &node {
+      EvalNode::Num(val) => {
+        Some(EvalProdTerm::Exp(EvalExp::from_number(val.factorial())))
+      },
+      _ => {
+        None
+      }
+    };
+
+    result.unwrap_or(EvalProdTerm::Func(EvalFunc::Factorial(node)))
+  }
+
+  /// Reciprocate this term in place
+  pub fn reciprocate(&mut self) {
+    let result = match self {
+      EvalProdTerm::Exp(exp) => {
+        exp.reciprocate();
+        None
+      },
+      EvalProdTerm::Func(func) => {
+        Some(EvalProdTerm::Exp(EvalExp::raw(
+            EvalNode::from_statement(Evaluable::new_from_prod_tem(
+                EvalProdTerm::Func(func.clone()))),
+            EvalNode::Num(Number::negative_one()))))
+      }
+    };
+
+    if result.is_some() {
+      *self = result.unwrap();
+    }
+  }
+}
+
+
 impl EvalProd {
 
   pub fn new() -> EvalProd {
     EvalProd {
-      exp_terms: Vec::new(),
-      eval_terms: Vec::new(),
+      terms: Vec::new(),
       number_collector: Number::one()
     }
   }
@@ -434,11 +479,21 @@ impl EvalProd {
   /// Create a new product with the give exp
   pub fn new_from_exp(exp: EvalExp) -> EvalProd {
     let mut result = EvalProd::new();
-    result.push(exp);
+    result.push_exp(exp);
     result
   }
 
-  pub fn push(&mut self, term: EvalExp) {
+  pub fn new_from_func(func: EvalFunc) -> EvalProd {
+    let mut result = EvalProd::new();
+    result.push_func(func);
+    result
+  }
+
+  pub fn push(&mut self, term: EvalProdTerm) {
+    self.terms.push(term)
+  }
+
+  pub fn push_exp(&mut self, term: EvalExp) {
     if self.number_collector.is_zero() {
       return;
     }
@@ -447,8 +502,7 @@ impl EvalProd {
       Ok(val) => {
         if val.is_zero() {
           self.number_collector = Number::zero();
-          self.eval_terms.clear();
-          self.exp_terms.clear();
+          self.terms.clear();
         }
         else {
           self.number_collector
@@ -456,24 +510,27 @@ impl EvalProd {
         }
       },
       Err(term) => {
-        self.exp_terms.push(term)
+        self.terms.push(EvalProdTerm::Exp(term));
       }
     }
   }
 
-  pub fn push(self, eval: EvalNode) ->
+  pub fn push_func(&mut self, eval: EvalFunc) {
+    self.terms.push(EvalProdTerm::Func(eval));
+  }
 
   /// Get the this product as a single exp term or an err with this
   /// in it
   pub fn as_exp(mut self) -> Result<EvalExp,EvalProd> {
-    if self.number_collector.is_zero()
-        || ( self.exp_terms.is_empty() && self.eval_terms.is_empty() ) {
-      Ok(EvalExp::new(EvalNode::Num(self.number_collector), None))
+    if self.number_collector.is_zero() || self.terms.is_empty() {
+      Ok(EvalExp::from_number(self.number_collector))
     }
     else if self.number_collector.is_one()
-        && self.exp_terms.len() == 1
-        && self.eval_terms.is_empty() {
-      Ok(self.exp_terms.pop().unwrap())
+        && self.terms.len() == 1 {
+      match self.terms.pop().unwrap() {
+        EvalProdTerm::Exp(exp) => Ok(exp),
+        EvalProdTerm::Func(func) => Err(EvalProd::new_from_func(func))
+      }
     }
     else {
       Err(self)
@@ -487,16 +544,15 @@ impl EvalProd {
 
   /// Get the best f64 representation of this product
   pub fn to_f64(&self) -> f64 {
-    let exp_prod : f64 = self.exp_terms.iter().map(EvalExp::to_f64).product();
-    let eval_prod : f64 = self.eval_terms.iter().map(EvalNode::to_f64).product();
-    exp_prod * eval_prod * self.number_collector.to_f64()
+    let result : f64 = self.terms.iter().map(EvalProdTerm::to_f64).product();
+    result *  self.number_collector.to_f64()
   }
 }
 
 impl EvalExp {
 
   fn from_number(num: Number) -> EvalExp {
-    EvalExp::new(EvalNode::Num(num), None)
+    EvalExp::new_just_base(EvalNode::Num(num))
   }
 
   fn raw(base: EvalNode, power: EvalNode) -> EvalExp {
@@ -506,74 +562,38 @@ impl EvalExp {
     }
   }
 
-  pub fn new(base_node: EvalNode, power_opt: Option<EvalNode>) -> EvalExp {
+  /// Create an eval exp as the result of raising a number to a number
+  fn from_num_to_num(base_num: Number, pow_num: Number) -> EvalExp {
+    pow(&base_num, &pow_num)
+  }
 
+  pub fn new_just_base(base_node: EvalNode) -> EvalExp {
+    EvalExp::raw(base_node, EvalNode::Num(Number::one()))
+  }
+
+  pub fn new(base_node: EvalNode, power: EvalNode) -> EvalExp {
     match base_node {
-      EvalNode::Statement(stmt) => {
-        match stmt.as_prod() {
-          Ok(prod) => {
-            match prod.as_exp() {
-              Ok(exp) => {
-                match exp.as_number() {
-                  Ok(base_val) => {
-                    match power_opt {
-                      Some(power) => {
-                        match &power {
-                          EvalNode::Num(pow_val) => {
-                            pow(&base_val, pow_val)
-                          },
-                          _ => {
-                            EvalExp::raw(EvalNode::Num(base_val), power)
-                          }
-                        }
-                      },
-                      None => {
-                        EvalExp::from_number(base_val)
-                      }
-                    }
-                  },
-                  Err(exp) => {
-                    match power_opt {
-                      Some(power) => {
-
-                      },
-                      None => {
-                        exp
-                      }
-                    }
-                  }
-                }
-              },
-              Err(prod) => {
-                EvalExp {
-                  base: EvalNode::Statement(Evaluable::new_from_prod(prod)),
-                  power: EvalNode::Num(Number::one())
-                }
-              }
-            }
+      EvalNode::Num(base_num) => {
+        match power {
+          EvalNode::Num(pow_num) => {
+            EvalExp::from_num_to_num(base_num, pow_num)
           },
-          Err(stmt) => {
-            EvalExp {
-              base: EvalNode::Statement(stmt),
-              power: EvalNode::Num(Number::one())
-            }
+          EvalNode::Statement(pow_stmt) => {
+            EvalExp::raw(EvalNode::Num(base_num), EvalNode::Statement(pow_stmt))
           }
         }
       },
-      _ => {
-          EvalExp {
-          base: base_node,
-          power: EvalNode::Num(Number::one())
-        }
+      EvalNode::Statement(base_stmt) => {
+        EvalExp::raw(EvalNode::Statement(base_stmt), power)
       }
     }
   }
 
   pub fn sqrt(of: EvalNode) -> EvalExp {
-    EvalExp::new(of, Some(EvalNode::Num(Number::new_rational(
+    EvalExp::new(of, EvalNode::Num(Number::new_rational(
         false,
         One::one(),
-        BigUint::from(2usize)))))
+        BigUint::from(2usize))))
   }
 
   /// try to get this exp as a number or else just return the same
